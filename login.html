@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login - FixMyCode</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      background: linear-gradient(-45deg, #1e3c72, #2a5298, #0f2027, #203a43);
+      background-size: 400% 400%;
+      animation: bg 10s ease infinite;
+    }
+
+    @keyframes bg {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .login-box {
+      backdrop-filter: blur(15px);
+      background: rgba(255, 255, 255, 0.1);
+      padding: 35px;
+      border-radius: 20px;
+      width: 320px;
+      text-align: center;
+      color: white;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 12px 0;
+      border: none;
+      border-radius: 10px;
+      outline: none;
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    input::placeholder {
+      color: #ddd;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(45deg, #00c6ff, #0072ff);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="login-box">
+  <h2>Welcome Back 👋</h2>
+  <p>Login to Fix Your Code</p>
+
+  <input id="user" type="text" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
+
+  <button onclick="login()">Login</button>
+</div>
+
+<script>
+function login() {
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
+
+  if (u === "admin" && p === "1234") {
+    window.location.href = "index.html";
+  } else {
+    alert("❌ Wrong Username or Password");
+  }
+}
+</script>
+
+</body>
+</html>
