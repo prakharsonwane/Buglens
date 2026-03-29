@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>FixMyCode - Editor</title>
+  <title>Debugify - Editor</title>
 
   <style>
     body {
@@ -29,23 +29,13 @@
       backdrop-filter: blur(15px);
       padding: 25px;
       border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 10px;
     }
 
     textarea {
       width: 100%;
       height: 160px;
       border-radius: 10px;
-      border: none;
       padding: 10px;
-      margin-top: 10px;
-      resize: none;
-      outline: none;
       font-family: monospace;
     }
 
@@ -57,53 +47,24 @@
       border: none;
     }
 
-    button {
-      background: linear-gradient(45deg, #00c6ff, #0072ff);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      transform: scale(1.05);
-    }
-
     .output {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 10px;
-      height: 130px;
-      overflow: auto;
+      margin-top: 10px;
       background: black;
+      padding: 10px;
+      height: 120px;
     }
 
-    .error {
-      color: red;
-    }
-
-    .success {
-      color: #00ff99;
-    }
-
-    .highlight {
-      border: 2px solid red;
-      box-shadow: 0 0 10px red;
-    }
-
-    .logout {
-      background: #ff4d4d;
-    }
-
+    .error { color: red; }
+    .success { color: #00ff99; }
   </style>
 </head>
 
 <body>
 
 <div class="container">
-  <h2>💻 FixMyCode</h2>
+  <h2>💻 Debugify</h2>
 
-  <textarea id="code" placeholder="Paste or type your code here..."></textarea>
+  <textarea id="code"></textarea>
 
   <select id="lang">
     <option value="c">C</option>
@@ -114,98 +75,35 @@
 
   <div id="output" class="output"></div>
 
-  <button class="logout" onclick="logout()">Logout</button>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script>
 function checkError() {
-  let codeBox = document.getElementById("code");
-  let code = codeBox.value.toLowerCase();
+  let code = document.getElementById("code").value.toLowerCase();
   let lang = document.getElementById("lang").value;
-  let outputDiv = document.getElementById("output");
+  let output = document.getElementById("output");
 
   let errors = [];
-  codeBox.classList.remove("highlight");
 
-  // C Language
   if (lang === "c") {
-
-    if (!code.includes("#include")) {
-      errors.push("Missing #include statement");
-    }
-
-    if (!code.includes("main")) {
-      errors.push("Missing main() function");
-    }
-
-    if (code.includes("printf") && !code.includes(";")) {
-      errors.push("Missing semicolon (;) in printf");
-    }
-
-    if (code.includes("scanf") && !code.includes("&")) {
-      errors.push("scanf me & lagana hota hai");
-    }
-
-    if (code.includes("{") && !code.includes("}")) {
-      errors.push("Missing closing bracket }");
-    }
-
-    if (code.includes("}") && !code.includes("{")) {
-      errors.push("Missing opening bracket {");
-    }
-
+    if (!code.includes("#include")) errors.push("Missing #include");
+    if (code.includes("printf") && !code.includes(";")) errors.push("Missing ;");
   }
 
-  // Python
   if (lang === "python") {
-
-    if (code.includes("for") && !code.includes(":")) {
-      errors.push("Missing ':' in loop");
-    }
-
-    if (code.includes("if") && !code.includes(":")) {
-      errors.push("Missing ':' in if statement");
-    }
-
-    if (code.includes("while") && !code.includes(":")) {
-      errors.push("Missing ':' in while loop");
-    }
-
-    if (code.includes("print") && code.includes(";")) {
-      errors.push("Python me semicolon nahi hota");
-    }
-
-    if (code.includes("{") || code.includes("}")) {
-      errors.push("Python me {} use nahi hote");
-    }
-
-    if (code.includes("print") && !code.includes("(")) {
-      errors.push("print me bracket missing");
-    }
-
-    if (code.includes("for") && code.includes("    ") === false) {
-      errors.push("Possible indentation error");
-    }
-
+    if (code.includes("for") && !code.includes(":")) errors.push("Missing ':'");
   }
 
   if (errors.length > 0) {
-    codeBox.classList.add("highlight");
-
-    let html = "";
-    errors.forEach(e => {
-      html += <div class="error">❌ ${e}</div>;
-    });
-
-    outputDiv.innerHTML = html;
-
+    output.innerHTML = errors.map(e => <div class='error'>❌ ${e}</div>).join("");
   } else {
-    outputDiv.innerHTML = <div class="success">✅ No common errors found</div>;
+    output.innerHTML = "<div class='success'>✅ No errors</div>";
   }
 }
 
 function logout() {
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 }
 </script>
 

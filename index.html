@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login - FixMyCode</title>
+  <title>Login - Debugify</title>
 
   <style>
     body {
@@ -11,7 +11,6 @@
       display: flex;
       justify-content: center;
       align-items: center;
-
       background: linear-gradient(-45deg, #1e3c72, #2a5298, #0f2027, #203a43);
       background-size: 400% 400%;
       animation: bg 10s ease infinite;
@@ -25,7 +24,7 @@
 
     .login-box {
       backdrop-filter: blur(15px);
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255,255,255,0.1);
       padding: 35px;
       border-radius: 20px;
       width: 320px;
@@ -34,44 +33,25 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
     }
 
-    h2 {
-      margin-bottom: 10px;
-    }
-
-    p {
-      font-size: 14px;
-      opacity: 0.8;
-    }
-
     input {
       width: 100%;
       padding: 12px;
       margin: 12px 0;
       border: none;
       border-radius: 10px;
-      outline: none;
       background: rgba(255,255,255,0.2);
       color: white;
-    }
-
-    input::placeholder {
-      color: #ddd;
     }
 
     button {
       width: 100%;
       padding: 12px;
-      border: none;
       border-radius: 10px;
+      border: none;
       background: linear-gradient(45deg, #00c6ff, #0072ff);
       color: white;
       font-weight: bold;
       cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      transform: scale(1.05);
     }
   </style>
 </head>
@@ -79,8 +59,7 @@
 <body>
 
 <div class="login-box">
-  <h2>Welcome Back 👋</h2>
-  <p>Login to Fix Your Code</p>
+  <h2>🔐 Debugify Login</h2>
 
   <input id="user" type="text" placeholder="Username">
   <input id="pass" type="password" placeholder="Password">
@@ -94,7 +73,7 @@ function login() {
   let p = document.getElementById("pass").value;
 
   if (u === "admin" && p === "1234") {
-    window.location.href = "index.html";
+    window.location.href = "editor.html";
   } else {
     alert("❌ Wrong Username or Password");
   }
