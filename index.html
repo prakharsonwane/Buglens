@@ -1,63 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>FixMyCode - Editor</title>
+  <title>Login - FixMyCode</title>
 
   <style>
     body {
       margin: 0;
+      height: 100vh;
       font-family: 'Poppins', sans-serif;
-      background: linear-gradient(-45deg, #1e3c72, #2a5298, #0f2027, #203a43);
-      background-size: 400% 400%;
-      animation: bg 10s ease infinite;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      color: white;
+
+      background: linear-gradient(-45deg, #1e3c72, #2a5298, #0f2027, #203a43);
+      background-size: 400% 400%;
+      animation: bg 10s ease infinite;
     }
 
     @keyframes bg {
-      0% {background-position: 0% 50%;}
-      50% {background-position: 100% 50%;}
-      100% {background-position: 0% 50%;}
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
-    .container {
-      width: 500px;
-      background: rgba(255,255,255,0.1);
+    .login-box {
       backdrop-filter: blur(15px);
-      padding: 25px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 35px;
       border-radius: 20px;
+      width: 320px;
+      text-align: center;
+      color: white;
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
     }
 
     h2 {
-      text-align: center;
       margin-bottom: 10px;
     }
 
-    textarea {
-      width: 100%;
-      height: 160px;
-      border-radius: 10px;
-      border: none;
-      padding: 10px;
-      margin-top: 10px;
-      resize: none;
-      outline: none;
-      font-family: monospace;
+    p {
+      font-size: 14px;
+      opacity: 0.8;
     }
 
-    select, button {
+    input {
       width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 10px;
+      padding: 12px;
+      margin: 12px 0;
       border: none;
+      border-radius: 10px;
+      outline: none;
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    input::placeholder {
+      color: #ddd;
     }
 
     button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
       background: linear-gradient(45deg, #00c6ff, #0072ff);
       color: white;
       font-weight: bold;
@@ -68,144 +73,31 @@
     button:hover {
       transform: scale(1.05);
     }
-
-    .output {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 10px;
-      height: 130px;
-      overflow: auto;
-      background: black;
-    }
-
-    .error {
-      color: red;
-    }
-
-    .success {
-      color: #00ff99;
-    }
-
-    .highlight {
-      border: 2px solid red;
-      box-shadow: 0 0 10px red;
-    }
-
-    .logout {
-      background: #ff4d4d;
-    }
-
   </style>
 </head>
 
 <body>
 
-<div class="container">
-  <h2>💻 FixMyCode</h2>
+<div class="login-box">
+  <h2>Welcome Back 👋</h2>
+  <p>Login to Fix Your Code</p>
 
-  <textarea id="code" placeholder="Paste or type your code here..."></textarea>
+  <input id="user" type="text" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
 
-  <select id="lang">
-    <option value="c">C</option>
-    <option value="python">Python</option>
-  </select>
-
-  <button onclick="checkError()">Check Error</button>
-
-  <div id="output" class="output"></div>
-
-  <button class="logout" onclick="logout()">Logout</button>
+  <button onclick="login()">Login</button>
 </div>
 
 <script>
-function checkError() {
-  let codeBox = document.getElementById("code");
-  let code = codeBox.value.toLowerCase();
-  let lang = document.getElementById("lang").value;
-  let outputDiv = document.getElementById("output");
+function login() {
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
 
-  let errors = [];
-  codeBox.classList.remove("highlight");
-
-  // C Language
-  if (lang === "c") {
-
-    if (!code.includes("#include")) {
-      errors.push("Missing #include statement");
-    }
-
-    if (!code.includes("main")) {
-      errors.push("Missing main() function");
-    }
-
-    if (code.includes("printf") && !code.includes(";")) {
-      errors.push("Missing semicolon (;) in printf");
-    }
-
-    if (code.includes("scanf") && !code.includes("&")) {
-      errors.push("scanf me & lagana hota hai");
-    }
-
-    if (code.includes("{") && !code.includes("}")) {
-      errors.push("Missing closing bracket }");
-    }
-
-    if (code.includes("}") && !code.includes("{")) {
-      errors.push("Missing opening bracket {");
-    }
-
-  }
-
-  // Python
-  if (lang === "python") {
-
-    if (code.includes("for") && !code.includes(":")) {
-      errors.push("Missing ':' in loop");
-    }
-
-    if (code.includes("if") && !code.includes(":")) {
-      errors.push("Missing ':' in if statement");
-    }
-
-    if (code.includes("while") && !code.includes(":")) {
-      errors.push("Missing ':' in while loop");
-    }
-
-    if (code.includes("print") && code.includes(";")) {
-      errors.push("Python me semicolon nahi hota");
-    }
-
-    if (code.includes("{") || code.includes("}")) {
-      errors.push("Python me {} use nahi hote");
-    }
-
-    if (code.includes("print") && !code.includes("(")) {
-      errors.push("print me bracket missing");
-    }
-
-    if (code.includes("for") && code.includes("    ") === false) {
-      errors.push("Possible indentation error");
-    }
-
-  }
-
-  if (errors.length > 0) {
-    codeBox.classList.add("highlight");
-
-    let html = "";
-    errors.forEach(e => {
-      html += <div class="error">❌ ${e}</div>;
-    });
-
-    outputDiv.innerHTML = html;
-
+  if (u === "admin" && p === "1234") {
+    window.location.href = "index.html";
   } else {
-    outputDiv.innerHTML = <div class="success">✅ No common errors found</div>;
+    alert("❌ Wrong Username or Password");
   }
-}
-
-function logout() {
-  window.location.href = "login.html";
 }
 </script>
 
