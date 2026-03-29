@@ -24,8 +24,9 @@ textarea{width:100%;background:#0b1220;color:white;border:none;outline:none;padd
 <select id="lang">
 <option value="python">Python</option>
 <option value="c">C</option>
-</select><button onclick="checkCode()">Check</button> <button onclick="runCode()">Run</button>
-
+</select>
+<button onclick="checkCode()">Check</button>
+<button onclick="runCode()">Run</button>
 <input id="projName" placeholder="Project name">
 <button onclick="saveProject()">Save</button>
 </div><div class="container">
@@ -39,73 +40,92 @@ textarea{width:100%;background:#0b1220;color:white;border:none;outline:none;padd
 </div>
 </div>
 </div><script>
-var code=document.getElementById('code');
-var lines=document.getElementById('lines');
-var out=document.getElementById('out');
-var savedList=document.getElementById('savedList');
+const code=document.getElementById('code');
+const lines=document.getElementById('lines');
+const out=document.getElementById('out');
+const savedList=document.getElementById('savedList');
 
 function updateLines(){
-var c=code.value.split('\n').length;
-var t='';
-for(var i=1;i<=c;i++)t+=i+'<br>';
+const c=code.value.split('\n').length;
+let t='';
+for(let i=1;i<=c;i++) t+=i+'<br>';
 lines.innerHTML=t;
 }
 
 function checkCode(){
-var c=code.value;
-var lang=document.getElementById('lang').value;
-var err=[];
-if(!c.trim()){out.innerHTML='<div class="error">Empty code</div>';return;}
-if((c.match(//g)||[]).length!=(c.match(//g)||[]).length)err.push('Bracket mismatch');
-if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)err.push('Brace mismatch');
+const c=code.value;
+const lang=document.getElementById('lang').value;
+let err=[];
+let warn=[];
 
-if(lang=='python'){
-var l=c.split('\n');
-for(var i=0;i<l.length;i++){
-if(/^(if|for|while|def|else|elif)/.test(l[i])&&!l[i].trim().endsWith(':'))err.push('Line '+(i+1)+' missing :');
-}
+if(!c.trim()){
+out.innerHTML='<div class="error">Empty code</div>';
+return;
 }
 
-if(lang=='c'){
-if(c.indexOf('main')==-1)err.push('Missing main()');
-if(c.indexOf('#include')==-1)err.push('Missing include');
+if((c.match(//g)||[]).length!=(c.match(//g)||[]).length) err.push('Bracket mismatch');
+if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length) err.push('Brace mismatch');
+
+if(lang==='python'){
+const l=c.split('\n');
+for(let i=0;i<l.length;i++){
+if(/^(if|for|while|def|else|elif)/.test(l[i]) && !l[i].trim().endsWith(':')){
+err.push('Line '+(i+1)+' missing :');
+}
+}
 }
 
-out.innerHTML=err.length==0?'<div class="ok">No issues found</div>':err.join('<br>');
+if(lang==='c'){
+if(!c.includes('#include')) err.push('Missing #include');
+if(c.includes('stdio') && !c.includes('stdio.h')) err.push('Possible typo stdio.h');
+if(!c.includes('main')) err.push('Missing main()');
+if(c.includes('main') && !c.includes('return')) warn.push('Missing return statement');
+if(!c.includes('printf')) warn.push('No printf found');
+}
+
+let msg='';
+if(err.length) msg+='<div class="error">'+err.join('<br>')+'</div>';
+if(warn.length) msg+='<div class="box">Warnings:<br>'+warn.join('<br>')+'</div>';
+if(!err.length && !warn.length) msg='<div class="ok">No issues found</div>';
+
+out.innerHTML=msg;
 }
 
 function runCode(){
-var c=code.value;
-var lang=document.getElementById('lang').value;
-var output='';
+const c=code.value;
+const lang=document.getElementById('lang').value;
+let output=[];
 
-if(lang=='python'){
+if(lang==='python'){
 let vars={};
-let lines=c.split('\n');
+const lines=c.split('\n');
 for(let i=0;i<lines.length;i++){
-let line=lines[i].trim();
+const line=lines[i].trim();
 if(line.startsWith('print(')){
-let exp=line.slice(line.indexOf('(')+1,line.lastIndexOf(')'));
-output+=evalExpr(exp,vars)+'\n';
-}
-else if(line.includes('=')){
-let parts=line.split('=');
-let name=parts[0].trim();
-let val=parts.slice(1).join('=').trim();
+const exp=line.slice(line.indexOf('(')+1,line.lastIndexOf(')'));
+output.push(evalExpr(exp,vars));
+}else if(line.includes('=')){
+const parts=line.split('=');
+const name=parts[0].trim();
+const val=parts.slice(1).join('=').trim();
 vars[name]=evalExpr(val,vars);
 }
 }
 }
 
-if(lang=='c'){
+if(lang==='c'){
 if(c.includes('printf')){
-let m=c.match(/\"(.*?)\"/g);
-if(m){m.forEach(x=>output+=x.replace(/\"/g,'')+'\n');}
+const m=c.match(/"(.*?)"/g);
+if(m) m.forEach(x=>output.push(x.replace(/"/g,'')));
 }
 }
 
-if(output=='')output='(no output)';
-out.innerHTML='<div class="box">'+output+'</div>';
+let finalOut='(no output)';
+if(output.length>1) finalOut=output[1];
+else if(output.length===1) finalOut=output[0];
+else finalOut='⚠ code may be incomplete or missing statements';
+
+out.innerHTML='<div class="box">'+finalOut+'</div>';
 }
 
 function evalExpr(exp,vars){
@@ -114,24 +134,24 @@ for(let k in vars){
 exp=exp.replace(new RegExp('\\b'+k+'\\b','g'),vars[k]);
 }
 return eval(exp);
-}catch(e){return exp.replace(/['\"]/g,'');}
+}catch(e){return exp.replace(/["']/g,'');}
 }
 
 function saveProject(){
-var name=document.getElementById('projName').value;
+const name=document.getElementById('projName').value;
 if(!name){alert('Enter name');return;}
-var data={code:code.value,lang:document.getElementById('lang').value};
-var s=JSON.parse(localStorage.getItem('buglens')||'{}');
+const data={code:code.value,lang:document.getElementById('lang').value};
+const s=JSON.parse(localStorage.getItem('buglens')||'{}');
 s[name]=data;
 localStorage.setItem('buglens',JSON.stringify(s));
 loadSaved();
 }
 
 function loadSaved(){
-var s=JSON.parse(localStorage.getItem('buglens')||'{}');
+const s=JSON.parse(localStorage.getItem('buglens')||'{}');
 savedList.innerHTML='';
-for(var k in s){
-var d=document.createElement('div');
+for(const k in s){
+const d=document.createElement('div');
 d.className='savedItem';
 d.innerHTML='<span>'+k+'</span><button onclick="openP(\''+k+'\')">Open</button><button onclick="delP(\''+k+'\')">X</button>';
 savedList.appendChild(d);
@@ -139,14 +159,14 @@ savedList.appendChild(d);
 }
 
 function openP(n){
-var s=JSON.parse(localStorage.getItem('buglens')||'{}');
+const s=JSON.parse(localStorage.getItem('buglens')||'{}');
 code.value=s[n].code;
 document.getElementById('lang').value=s[n].lang;
 updateLines();
 }
 
 function delP(n){
-var s=JSON.parse(localStorage.getItem('buglens')||'{}');
+const s=JSON.parse(localStorage.getItem('buglens')||'{}');
 delete s[n];
 localStorage.setItem('buglens',JSON.stringify(s));
 loadSaved();
