@@ -1,261 +1,157 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html lang="en">
 <head>
-  <title>Debugify - Editor</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(-45deg, #1e3c72, #2a5298, #0f2027, #203a43);
-      background-size: 400% 400%;
-      animation: bg 10s ease infinite;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      color: white;
-    }
-
-    @keyframes bg {
-      0% {background-position: 0% 50%;}
-      50% {background-position: 100% 50%;}
-      100% {background-position: 0% 50%;}
-    }
-
-    .container {
-      width: 520px;
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(15px);
-      padding: 25px;
-      border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    }
-
-    textarea {
-      width: 100%;
-      height: 170px;
-      border-radius: 10px;
-      padding: 10px;
-      font-family: monospace;
-      outline: none;
-      border: none;
-    }
-
-    select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 10px;
-      border: none;
-    }
-
-    button {
-      background: linear-gradient(45deg, #00c6ff, #0072ff);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .output {
-      margin-top: 10px;
-      background: black;
-      padding: 10px;
-      height: 150px;
-      overflow: auto;
-      border-radius: 10px;
-    }
-
-    .error { color: red; }
-    .success { color: #00ff99; }
-
-    .highlight {
-      border: 2px solid red;
-      box-shadow: 0 0 10px red;
-    }
-
-    .logout {
-      background: #ff4d4d;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BugLens Mini Compiler Playground</title>
+<style>
+body{margin:0;font-family:Arial;background:#0f172a;color:#e2e8f0;}
+.top{padding:10px;background:#111827;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+select,input,button{padding:8px;border:none;border-radius:6px;}
+button{background:#22c55e;color:white;cursor:pointer;}
+.container{display:flex;height:calc(100vh - 60px);}
+.editor{width:50%;display:flex;background:#0b1220;}
+.lines{width:50px;background:#111827;padding:10px;text-align:right;font-size:12px;color:#64748b;}
+textarea{width:100%;background:#0b1220;color:white;border:none;outline:none;padding:10px;font-family:monospace;font-size:14px;resize:none;}
+.panel{width:50%;padding:10px;overflow:auto;border-left:1px solid #1f2937;}
+.box{background:#0b1220;padding:10px;border-radius:8px;margin-top:10px;white-space:pre-wrap;}
+.error{background:#1e293b;border-left:4px solid red;padding:8px;margin:6px 0;}
+.ok{color:#22c55e;}
+.saveBox{margin-top:10px;background:#0b1220;padding:10px;border:1px solid #1f2937;border-radius:8px;}
+.savedItem{display:flex;justify-content:space-between;background:#111827;padding:6px;margin-top:5px;border-radius:6px;}
+</style>
 </head>
+<body><div class="top">
+<select id="lang">
+<option value="python">Python</option>
+<option value="c">C</option>
+</select><button onclick="checkCode()">Check</button> <button onclick="runCode()">Run</button>
 
-<body>
-
-<div class="container">
-  <h2>💻 Debugify</h2>
-
-  <textarea id="code" placeholder="Paste your code here..."></textarea>
-
-  <select id="lang">
-    <option value="c">C</option>
-    <option value="python">Python</option>
-  </select>
-
-  <button onclick="checkError()">Check Error</button>
-  <button onclick="autoFix()">Auto Fix</button>
-
-  <div id="output" class="output"></div>
-
-  <button class="logout" onclick="logout()">Logout</button>
+<input id="projName" placeholder="Project name">
+<button onclick="saveProject()">Save</button>
+</div><div class="container">
+<div class="editor">
+<div class="lines" id="lines">1</div>
+<textarea id="code" oninput="updateLines()"></textarea>
+</div><div class="panel">
+<div id="out" class="ok">Write code and run</div><div class="saveBox">
+<b>Saved Projects</b>
+<div id="savedList"></div>
 </div>
+</div>
+</div><script>
+var code=document.getElementById('code');
+var lines=document.getElementById('lines');
+var out=document.getElementById('out');
+var savedList=document.getElementById('savedList');
 
-<script>
-
-// ================= ERROR CHECK =================
-function checkError() {
-  let codeBox = document.getElementById("code");
-  let code = codeBox.value;
-  let lang = document.getElementById("lang").value;
-  let output = document.getElementById("output");
-
-  let errors = [];
-  codeBox.classList.remove("highlight");
-
-  let lines = code.split("\n");
-
-  // ===== C =====
- // double operator error
-if (l.includes("+++") || l.includes("--")) {
-  errors.push("Line " + (i+1) + ": invalid operator usage");
+function updateLines(){
+var c=code.value.split('\n').length;
+var t='';
+for(var i=1;i<=c;i++)t+=i+'<br>';
+lines.innerHTML=t;
 }
 
-// printf format mismatch
-if (l.includes("printf") && l.includes("%d") && l.includes('"') === false) {
-  errors.push("Line " + (i+1) + ": printf format may be wrong");
+function checkCode(){
+var c=code.value;
+var lang=document.getElementById('lang').value;
+var err=[];
+if(!c.trim()){out.innerHTML='<div class="error">Empty code</div>';return;}
+if((c.match(//g)||[]).length!=(c.match(//g)||[]).length)err.push('Bracket mismatch');
+if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)err.push('Brace mismatch');
+
+if(lang=='python'){
+var l=c.split('\n');
+for(var i=0;i<l.length;i++){
+if(/^(if|for|while|def|else|elif)/.test(l[i])&&!l[i].trim().endsWith(':'))err.push('Line '+(i+1)+' missing :');
+}
 }
 
-// return missing
-if (!code.includes("return")) {
-  errors.push("Missing return statement");
-} if (lang === "c") {
-
-    if (!code.includes("#include")) errors.push("Missing #include");
-    if (!code.includes("main")) errors.push("Missing main()");
-
-    lines.forEach(function(line, i) {
-      let l = line.trim();
-
-      if (l.includes("printf")) {
-        if (!l.includes("%")) errors.push("Line " + (i+1) + ": printf needs %d");
-        if (l.includes("=")) errors.push("Line " + (i+1) + ": assignment inside printf");
-        if (!l.endsWith(";")) errors.push("Line " + (i+1) + ": missing ;");
-      }
-
-      if (l.includes("scanf") && !l.includes("&")) {
-        errors.push("Line " + (i+1) + ": scanf needs &");
-      }
-
-      if (/int\s+\w+[^;]$/.test(l)) {
-        errors.push("Line " + (i+1) + ": missing ;");
-      }
-    });
-
-    let open = (code.match(/{/g) || []).length;
-    let close = (code.match(/}/g) || []).length;
-
-    if (open !== close) errors.push("Bracket mismatch");
-  }
-
-  // ===== PYTHON =====
-  // variable assignment missing
-if (/^[a-zA-Z]+\s+[a-zA-Z]+$/.test(l)) {
-  errors.push("Line " + (i+1) + ": assignment (=) missing");
+if(lang=='c'){
+if(c.indexOf('main')==-1)err.push('Missing main()');
+if(c.indexOf('#include')==-1)err.push('Missing include');
 }
 
-// multiple colon error
-if (l.includes("::")) {
-  errors.push("Line " + (i+1) + ": invalid ':' usage");
+out.innerHTML=err.length==0?'<div class="ok">No issues found</div>':err.join('<br>');
 }
 
-// random brackets
-if (l.includes("(") && !l.includes(")")) {
-  errors.push("Line " + (i+1) + ": bracket not closed");
-}if (lang === "python") {
+function runCode(){
+var c=code.value;
+var lang=document.getElementById('lang').value;
+var output='';
 
-    lines.forEach(function(line, i) {
-      let l = line.trim();
-
-      if (l.startsWith("for") && !l.endsWith(":"))
-        errors.push("Line " + (i+1) + ": missing :");
-
-      if (l.startsWith("if") && !l.endsWith(":"))
-        errors.push("Line " + (i+1) + ": missing :");
-
-      if (l.includes("print") && l.includes(";"))
-        errors.push("Line " + (i+1) + ": remove ;");
-
-      if (i > 0 && lines[i-1].trim().endsWith(":")) {
-        if (!line.startsWith(" "))
-          errors.push("Line " + (i+1) + ": indentation missing");
-      }
-    });
-  }
-
-  errors = [...new Set(errors)];
-
-  if (errors.length > 0) {
-    codeBox.classList.add("highlight");
-
-    let result = "";
-    errors.forEach(function(e) {
-      result += "<div class='error'>❌ " + e + "</div>";
-    });
-
-    output.innerHTML = result;
-
-  } else {
-    output.innerHTML = "<div class='success'>✅ No errors found 🎉</div>";
-  }
+if(lang=='python'){
+let vars={};
+let lines=c.split('\n');
+for(let i=0;i<lines.length;i++){
+let line=lines[i].trim();
+if(line.startsWith('print(')){
+let exp=line.slice(line.indexOf('(')+1,line.lastIndexOf(')'));
+output+=evalExpr(exp,vars)+'\n';
+}
+else if(line.includes('=')){
+let parts=line.split('=');
+let name=parts[0].trim();
+let val=parts.slice(1).join('=').trim();
+vars[name]=evalExpr(val,vars);
+}
+}
 }
 
-
-// ================= AUTO FIX =================
-function autoFix() {
-  let codeBox = document.getElementById("code");
-  let code = codeBox.value;
-  let lang = document.getElementById("lang").value;
-
-  let lines = code.split("\n");
-
-  let fixed = lines.map(function(line) {
-    let l = line;
-
-    if (lang === "c") {
-
-      if (l.includes("printf") && !l.includes("%")) {
-        l = 'printf("%d",' + l.replace("printf(", "").replace(");","") + ');';
-      }
-
-      if (!l.trim().endsWith(";") && l.includes("int")) {
-        l = l + ";";
-      }
-    }
-
-    if (lang === "python") {
-
-      if (l.startsWith("for") && !l.endsWith(":")) {
-        l = l + ":";
-      }
-
-      if (l.startsWith("if") && !l.endsWith(":")) {
-        l = l + ":";
-      }
-    }
-
-    return l;
-  });
-
-  codeBox.value = fixed.join("\n");
+if(lang=='c'){
+if(c.includes('printf')){
+let m=c.match(/\"(.*?)\"/g);
+if(m){m.forEach(x=>output+=x.replace(/\"/g,'')+'\n');}
+}
 }
 
-
-// ================= LOGOUT =================
-function logout() {
-  window.location.href = "index.html";
+if(output=='')output='(no output)';
+out.innerHTML='<div class="box">'+output+'</div>';
 }
 
-</script>
+function evalExpr(exp,vars){
+try{
+for(let k in vars){
+exp=exp.replace(new RegExp('\\b'+k+'\\b','g'),vars[k]);
+}
+return eval(exp);
+}catch(e){return exp.replace(/['\"]/g,'');}
+}
 
-</body>
+function saveProject(){
+var name=document.getElementById('projName').value;
+if(!name){alert('Enter name');return;}
+var data={code:code.value,lang:document.getElementById('lang').value};
+var s=JSON.parse(localStorage.getItem('buglens')||'{}');
+s[name]=data;
+localStorage.setItem('buglens',JSON.stringify(s));
+loadSaved();
+}
+
+function loadSaved(){
+var s=JSON.parse(localStorage.getItem('buglens')||'{}');
+savedList.innerHTML='';
+for(var k in s){
+var d=document.createElement('div');
+d.className='savedItem';
+d.innerHTML='<span>'+k+'</span><button onclick="openP(\''+k+'\')">Open</button><button onclick="delP(\''+k+'\')">X</button>';
+savedList.appendChild(d);
+}
+}
+
+function openP(n){
+var s=JSON.parse(localStorage.getItem('buglens')||'{}');
+code.value=s[n].code;
+document.getElementById('lang').value=s[n].lang;
+updateLines();
+}
+
+function delP(n){
+var s=JSON.parse(localStorage.getItem('buglens')||'{}');
+delete s[n];
+localStorage.setItem('buglens',JSON.stringify(s));
+loadSaved();
+}
+
+loadSaved();updateLines();
+</script></body>
 </html>
