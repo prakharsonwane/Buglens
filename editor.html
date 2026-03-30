@@ -3,123 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Debugify</title>
+<title>BugLens IDE</title>
 
 <style>
-body{
-margin:0;
-font-family:Arial;
-background:#0f172a;
-color:#e2e8f0;
-}
-
-.top{
-padding:10px;
-background:#111827;
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-align-items:center;
-}
-
-select,input,button{
-padding:8px;
-border:none;
-border-radius:6px;
-}
-
-button{
-background:#22c55e;
-color:white;
-cursor:pointer;
-}
-
-button.icon{
-background:#334155;
-}
-
-.container{
-display:flex;
-height:calc(100vh - 60px);
-}
-
-.editor{
-width:50%;
-display:flex;
-background:#0b1220;
-}
-
-.lines{
-width:50px;
-background:#111827;
-padding:10px;
-text-align:right;
-font-size:12px;
-color:#64748b;
-}
-
-textarea{
-width:100%;
-background:#0b1220;
-color:white;
-border:none;
-outline:none;
-padding:10px;
-font-family:monospace;
-font-size:14px;
-resize:none;
-}
-
-.panel{
-width:50%;
-padding:10px;
-overflow:auto;
-border-left:1px solid #1f2937;
-}
-
-.box{
-background:#0b1220;
-padding:10px;
-border-radius:8px;
-margin-top:10px;
-white-space:pre-wrap;
-}
-
-.error{
-background:#1e293b;
-border-left:4px solid red;
-padding:8px;
-margin:6px 0;
-}
-
-.ok{
-color:#22c55e;
-}
-
-.saveBox{
-margin-top:10px;
-background:#0b1220;
-padding:10px;
-border:1px solid #1f2937;
-border-radius:8px;
-}
-
-.savedItem{
-display:flex;
-justify-content:space-between;
-background:#111827;
-padding:6px;
-margin-top:5px;
-border-radius:6px;
-}
-
-button.fix{
-background:#3b82f6;
-}
+body{margin:0;font-family:Arial;background:#0f172a;color:#e2e8f0;}
+.top{padding:10px;background:#111827;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+select,input,button{padding:8px;border:none;border-radius:6px;}
+button{background:#22c55e;color:white;cursor:pointer;}
+button.icon{background:#334155;}
+.container{display:flex;height:calc(100vh - 60px);}
+.editor{width:50%;display:flex;background:#0b1220;}
+.lines{width:50px;background:#111827;padding:10px;text-align:right;font-size:12px;color:#64748b;}
+textarea{width:100%;background:#0b1220;color:white;border:none;outline:none;padding:10px;font-family:monospace;font-size:14px;resize:none;}
+.panel{width:50%;padding:10px;overflow:auto;border-left:1px solid #1f2937;}
+.box{background:#0b1220;padding:10px;border-radius:8px;white-space:pre-wrap;}
+.error{background:#1e293b;border-left:4px solid red;padding:8px;margin:6px 0;}
+.ok{color:#22c55e;}
 </style>
 
 </head>
-
 <body>
 
 <div class="top">
@@ -131,12 +33,10 @@ background:#3b82f6;
 
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
+<button onclick="showSuggestions()">Suggestions</button>
 
-<!-- 🔥 Suggestion Button -->
-<button class="fix" onclick="showSuggestions()">Suggestions</button>
-
-<input id="projName" placeholder="Project name">
-<button onclick="saveProject()">Save</button>
+<button class="icon" onclick="undo()">↶ Undo</button>
+<button class="icon" onclick="redo()">↷ Redo</button>
 
 </div>
 
@@ -144,107 +44,100 @@ background:#3b82f6;
 
 <div class="editor">
 <div class="lines" id="lines">1</div>
-<textarea id="code" oninput="updateLines()"></textarea>
+<textarea id="code" oninput="pushHistory();updateLines()"></textarea>
 </div>
 
 <div class="panel">
 
 <div id="out" class="ok">Write code and run</div>
 
-<div class="saveBox">
-<b>Saved Projects</b>
-<div id="savedList"></div>
-</div>
-
 </div>
 </div>
 
 <script>
 
-const code=document.getElementById('code');
-const lines=document.getElementById('lines');
-const out=document.getElementById('out');
-const savedList=document.getElementById('savedList');
-const lang=document.getElementById('lang');
+const code=document.getElementById("code");
+const lines=document.getElementById("lines");
+const out=document.getElementById("out");
+const lang=document.getElementById("lang");
 
+/* ---------------- HISTORY ---------------- */
+let history=[];
+let redoStack=[];
+
+function pushHistory(){
+history.push(code.value);
+if(history.length>50) history.shift();
+redoStack=[];
+}
+
+function undo(){
+if(history.length>1){
+redoStack.push(history.pop());
+code.value=history[history.length-1]||"";
+updateLines();
+}
+}
+
+function redo(){
+if(redoStack.length){
+let v=redoStack.pop();
+history.push(v);
+code.value=v;
+updateLines();
+}
+}
+
+/* ---------------- LINE ---------------- */
 function updateLines(){
-const c=code.value.split('\n').length;
-let t='';
-for(let i=1;i<=c;i++) t+=i+'<br>';
+let c=code.value.split("\n").length;
+let t="";
+for(let i=1;i<=c;i++) t+=i+"<br>";
 lines.innerHTML=t;
 }
 
-function detectLang(c){
-let cScore=0,pyScore=0;
-if(c.includes('#include')||c.includes('int main')||c.includes('printf')) cScore+=3;
-if(c.includes('def ')||c.includes('print(')||c.includes('import')) pyScore+=3;
-return cScore>pyScore?'c':pyScore>cScore?'python':'unknown';
-}
-
+/* ---------------- CHECK ---------------- */
 function checkCode(){
-const c=code.value;
-let err=[],warn=[];
+let c=code.value;
+let err=[];
 
 if(!c.trim()){
-out.innerHTML='<div class="error">Empty code</div>';
+out.innerHTML="<div class='error'>Empty code</div>";
 return;
 }
 
-let detected=detectLang(c);
-
-if(detected!==lang.value && detected!=='unknown'){
-warn.push('Language mismatch detected');
-}
-
 if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
-err.push('Bracket mismatch');
+err.push("Bracket mismatch");
 
 if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)
-err.push('Brace mismatch');
+err.push("Brace mismatch");
 
-if(lang.value==='python'){
-const l=c.split('\n');
-for(let i=0;i<l.length;i++){
-if(/^(if|for|while|def|else|elif)/.test(l[i]) && !l[i].trim().endsWith(':'))
-err.push('Line '+(i+1)+' missing :');
-}
+if(lang.value==="c"){
+if(!c.includes("main")) err.push("Missing main()");
+if(!c.includes("printf")) err.push("No printf found");
 }
 
-if(lang.value==='c'){
-if(!c.includes('#include')) err.push('Missing #include');
-if(c.includes('stdio')&&!c.includes('stdio.h')) err.push('Possible typo stdio.h');
-if(!c.includes('main')) err.push('Missing main()');
-if(c.includes('main')&&!c.includes('return')) warn.push('Missing return statement');
-if(!c.includes('printf')) warn.push('No output (printf missing)');
+if(err.length)
+out.innerHTML="<div class='error'>"+err.join("<br>")+"</div>";
+else
+out.innerHTML="<div class='ok'>No issues found 🎉</div>";
 }
 
-let msg='';
-
-if(err.length) msg+='<div class="error">'+err.join('<br>')+'</div>';
-if(warn.length) msg+='<div class="box">Warnings:<br>'+warn.join('<br>')+'</div>';
-
-if(!err.length && !warn.length)
-msg='<div class="ok">No issues found 🎉</div>';
-
-out.innerHTML=msg;
-}
-
-/* 🔥 NEW: Suggestion System */
+/* ---------------- SUGGESTIONS (SAFE MODE) ---------------- */
 function showSuggestions(){
-const c=code.value;
+let c=code.value;
 let s=[];
 
-if(c.includes('stdio') && !c.includes('stdio.h'))
+if(lang.value==="c"){
+if(c.includes("stdio") && !c.includes("stdio.h"))
 s.push("Add #include <stdio.h>");
 
-if(c.includes('main') && !c.includes('return'))
-s.push("Add return 0; at end of main()");
+if(c.includes("main") && !c.includes("return"))
+s.push("Add return 0;");
 
-if(lang.value==='c' && !c.includes('printf'))
+if(!c.includes("printf"))
 s.push("Add printf() for output");
-
-if((c.match(/\(/g)||[]).length !== (c.match(/\)/g)||[]).length)
-s.push("Fix bracket mismatch ()");
+}
 
 if(s.length===0){
 out.innerHTML="<div class='ok'>No suggestions 🎉</div>";
@@ -255,91 +148,55 @@ out.innerHTML=`
 <div class="box">
 🔧 Suggestions:<br><br>
 ${s.map(x=>"• "+x).join("<br>")}<br><br>
-⚠ Safe mode: No automatic changes applied
+⚠ Safe mode (no auto changes)
 </div>
 `;
 }
 
+/* ---------------- RUN ENGINE ---------------- */
 function runCode(){
-const c=code.value;
+let c=code.value;
 let output=[];
 
-if(lang.value==='python'){
-let vars={};
-const lines=c.split('\n');
-
-for(let i=0;i<lines.length;i++){
-const line=lines[i].trim();
-
-if(line.startsWith('print(')){
-const exp=line.slice(line.indexOf('(')+1,line.lastIndexOf(')'));
-output.push(exp);
+/* PYTHON SIMPLE */
+if(lang.value==="python"){
+let lines=c.split("\n");
+for(let l of lines){
+l=l.trim();
+if(l.startsWith("print(")){
+output.push(l.slice(6,-1));
 }
 }
 }
 
-if(lang.value==='c'){
-if(c.includes('printf')){
-const m=c.match(/\"(.*?)\"/g);
-if(m) m.forEach(x=>output.push(x.replace(/\"/g,'')));
+/* C SIMPLE FIXED PRINTF */
+if(lang.value==="c"){
+let match=c.match(/printf\s*\("([^"]*)"(?:\s*,\s*([^)]+))?\)/);
+
+if(match){
+let text=match[1];
+let val=match[2];
+
+if(val){
+try{ val=eval(val); }catch(e){}
+text=text.replace("%d",val);
+}
+
+output.push(text);
 }
 }
 
-let finalOut='(no output)';
+let final="(no output)";
 
-if(output.length>1) finalOut=output[1];
-else if(output.length===1) finalOut=output[0];
-else finalOut='⚠ code may be incomplete or missing statements';
+if(output.length>0) final=output.join("\n");
+else final="⚠ code may be incomplete";
 
-out.innerHTML='<div class="box">'+finalOut+'</div>';
+out.innerHTML="<div class='box'>"+final+"</div>";
 }
 
-function saveProject(){
-const name=document.getElementById('projName').value;
-if(!name){alert('Enter name');return;}
-
-const data={code:code.value,lang:lang.value};
-const s=JSON.parse(localStorage.getItem('buglens')||'{}');
-
-s[name]=data;
-localStorage.setItem('buglens',JSON.stringify(s));
-
-loadSaved();
-}
-
-function loadSaved(){
-const s=JSON.parse(localStorage.getItem('buglens')||'{}');
-savedList.innerHTML='';
-
-for(const k in s){
-const d=document.createElement('div');
-d.className='savedItem';
-
-d.innerHTML=
-'<span>'+k+'</span>'+
-'<button onclick="openP(\''+k+'\')">Open</button>'+
-'<button onclick="delP(\''+k+'\')">X</button>';
-
-savedList.appendChild(d);
-}
-}
-
-function openP(n){
-const s=JSON.parse(localStorage.getItem('buglens')||'{}');
-code.value=s[n].code;
-lang.value=s[n].lang;
+/* INIT */
+pushHistory();
 updateLines();
-}
-
-function delP(n){
-const s=JSON.parse(localStorage.getItem('buglens')||'{}');
-delete s[n];
-localStorage.setItem('buglens',JSON.stringify(s));
-loadSaved();
-}
-
-updateLines();
-loadSaved();
 
 </script>
 
