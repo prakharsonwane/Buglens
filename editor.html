@@ -127,7 +127,7 @@ border-radius:6px;
 
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
-<button class="fix" onclick="showSuggestions()">Suggestions</button>
+<button onclick="showSuggestions()">Suggestions</button>
 
 <input id="projName" placeholder="Project name">
 <button onclick="saveProject()">Save</button>
@@ -153,247 +153,227 @@ border-radius:6px;
 </div>
 </div>
 
-<!-- PYODIDE -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
 
 <script>
 
-const code=document.getElementById('code');
-const lines=document.getElementById('lines');
-const out=document.getElementById('out');
-const savedList=document.getElementById('savedList');
-const lang=document.getElementById('lang');
+const code=document.getElementById("code");
+const lines=document.getElementById("lines");
+const out=document.getElementById("out");
+const savedList=document.getElementById("savedList");
+const lang=document.getElementById("lang");
 
-code.addEventListener('input', updateLines);
+code.addEventListener("input", updateLines);
 
-/* LINE NUMBERS */
 function updateLines(){
-const c=code.value.split('\n').length;
-let t='';
-for(let i=1;i<=c;i++) t+=i+'<br>';
+let count=code.value.split("\n").length;
+let t="";
+for(let i=1;i<=count;i++) t+=i+"<br>";
 lines.innerHTML=t;
 }
 
-/* ---------------- SAFE AUTO INDENT (NO UNDEFINED EVER) ---------------- */
+/* SAFE ENTER + TAB */
 code.addEventListener("keydown", function(e){
 
 if(e.key==="Tab"){
 e.preventDefault();
-let start=this.selectionStart;
-let end=this.selectionEnd;
-
-this.value=this.value.substring(0,start)+"    "+this.value.substring(end);
-this.selectionStart=this.selectionEnd=start+4;
+let s=this.selectionStart;
+this.value=this.value.slice(0,s)+"    "+this.value.slice(s);
+this.selectionStart=this.selectionEnd=s+4;
 updateLines();
 }
 
 if(e.key==="Enter"){
 e.preventDefault();
 
-let value=this.value;
+let v=this.value;
 let pos=this.selectionStart;
-
-/* safe line extraction */
-let before=value.substring(0,pos);
+let before=v.slice(0,pos);
 let line=before.split("\n").pop() || "";
 
-/* manual indentation (100% safe) */
 let indent="";
 for(let i=0;i<line.length;i++){
 if(line[i]===" ") indent+=" ";
 else break;
 }
 
-/* auto indent after ':' */
 if(line.trim().endsWith(":")){
 indent+="    ";
 }
 
-this.value=value.substring(0,pos)+"\n"+indent+value.substring(pos);
+this.value=v.slice(0,pos)+"\n"+indent+v.slice(pos);
 this.selectionStart=this.selectionEnd=pos+1+indent.length;
 
 updateLines();
 }
 });
 
-/* ---------------- LANGUAGE DETECT ---------------- */
+/* LANGUAGE DETECT */
 function detectLang(c){
 let cScore=0,pyScore=0;
-if(c.includes('#include')||c.includes('int main')||c.includes('printf')) cScore+=3;
-if(c.includes('def ')||c.includes('print(')||c.includes('import')) pyScore+=3;
-return cScore>pyScore?'c':pyScore>cScore?'python':'unknown';
+if(c.includes("#include")||c.includes("printf")) cScore++;
+if(c.includes("print(")||c.includes("def ")) pyScore++;
+return cScore>pyScore?"c":"python";
 }
 
-/* ---------------- CHECK ---------------- */
+/* CHECK */
 function checkCode(){
-const c=code.value;
-let err=[],warn=[];
+let c=code.value;
+let err=[];
 
 if(!c.trim()){
-out.innerHTML='<div class="error">Empty code</div>';
+out.innerHTML="<div class='error'>Empty code</div>";
 return;
 }
 
-let detected=detectLang(c);
-
-if(detected!==lang.value && detected!=='unknown'){
-warn.push('⚠ Language mismatch detected');
-}
-
 if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
-err.push('Bracket mismatch');
+err.push("Bracket mismatch");
 
 if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)
-err.push('Brace mismatch');
+err.push("Brace mismatch");
 
 /* PYTHON */
-if(lang.value==='python'){
-const l=c.split('\n');
+if(lang.value==="python"){
+let linesArr=c.split("\n");
 
-for(let i=0;i<l.length;i++){
-
-if(l[i].trim().endsWith(":")){
-let next=l[i+1];
+for(let i=0;i<linesArr.length;i++){
+if(linesArr[i].trim().endsWith(":")){
+let next=linesArr[i+1];
 if(next && !next.startsWith(" ")){
-err.push("Line "+(i+1)+": Missing indentation after ':'");
+err.push("Line "+(i+1)+": indentation missing");
 }
-}
-
-if(/^(if|for|while|def|else|elif)/.test(l[i]) && !l[i].trim().endsWith(":")){
-err.push("Line "+(i+1)+" missing ':'");
 }
 }
 }
 
 /* C */
-if(lang.value==='c'){
-if(!c.includes('#include')) err.push('Missing #include');
-if(c.includes('stdio')&&!c.includes('stdio.h')) err.push('Possible typo stdio.h');
-if(!c.includes('main')) err.push('Missing main()');
-if(!c.includes('printf')) warn.push('No output (printf missing)');
+if(lang.value==="c"){
+if(!c.includes("#include")) err.push("Missing #include");
+if(!c.includes("main")) err.push("Missing main()");
+if(!c.includes("printf")) err.push("No output function printf()");
 }
 
 /* OUTPUT */
-let msg='';
-if(err.length) msg+='<div class="error">'+err.join('<br>')+'</div>';
-if(warn.length) msg+='<div class="box">'+warn.join('<br>')+'</div>';
-if(!err.length && !warn.length) msg='<div class="ok">No issues found 🎉</div>';
-
-out.innerHTML=msg;
+if(err.length){
+out.innerHTML="<div class='error'>"+err.join("<br>")+"</div>";
+}else{
+out.innerHTML="<div class='ok'>No issues found 🎉</div>";
+}
 }
 
-/* ---------------- SUGGESTIONS ---------------- */
+/* SUGGESTIONS */
 function showSuggestions(){
 let c=code.value;
 let s=[];
 
-if(c.includes('main') && !c.includes('return'))
+if(c.includes("main") && !c.includes("return"))
 s.push("Add return 0;");
 
-if(lang.value==='c' && !c.includes('printf'))
+if(lang.value==="c" && !c.includes("printf"))
 s.push("Add printf()");
 
-if(s.length===0){
-out.innerHTML="<div class='ok'>No suggestions 🎉</div>";
-return;
+out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"No suggestions 🎉")+"</div>";
 }
 
-out.innerHTML="<div class='box'>"+s.join("<br>")+"</div>";
-}
-
-/* ---------------- SAVE ---------------- */
+/* SAVE SAFE */
 function saveProject(){
-const name=document.getElementById('projName').value;
-if(!name){alert('Enter name');return;}
+let name=document.getElementById("projName").value.trim();
+if(!name){alert("Enter name");return;}
 
-const data={code:code.value,lang:lang.value};
-const s=JSON.parse(localStorage.getItem('buglens')||'{}');
+let store=JSON.parse(localStorage.getItem("buglens")||"{}");
 
-s[name]=data;
-localStorage.setItem('buglens',JSON.stringify(s));
+store[name]={
+code:code.value||"",
+lang:lang.value
+};
 
+localStorage.setItem("buglens",JSON.stringify(store));
 loadSaved();
 }
 
+/* LOAD SAFE */
 function loadSaved(){
-const s=JSON.parse(localStorage.getItem('buglens')||'{}');
-savedList.innerHTML='';
+let store=JSON.parse(localStorage.getItem("buglens")||"{}");
+savedList.innerHTML="";
 
-for(const k in s){
-const d=document.createElement('div');
-d.className='savedItem';
+for(let k in store){
 
+let d=document.createElement("div");
+d.className="savedItem";
+
+/* SAFE BUTTONS (NO undefined bug) */
 d.innerHTML=
-'<span>'+k+'</span>'+
-'<button onclick="openP(\''+k+'\')">Open</button>'+
-'<button onclick="delP(\''+k+'\')">X</button>';
+"<span>"+k+"</span>"+
+"<button onclick=\"openP('"+k.replace(/'/g,"")+"\")\">Open</button>"+
+"<button onclick=\"delP('"+k.replace(/'/g,"")+"\")\">X</button>";
 
 savedList.appendChild(d);
 }
 }
 
+/* OPEN SAFE */
 function openP(n){
-const s=JSON.parse(localStorage.getItem('buglens')||'{}');
-code.value=s[n].code;
-lang.value=s[n].lang;
+let store=JSON.parse(localStorage.getItem("buglens")||"{}");
+if(!store[n]) return;
+
+code.value=store[n].code||"";
+lang.value=store[n].lang||"python";
 updateLines();
 }
 
+/* DELETE SAFE */
 function delP(n){
-const s=JSON.parse(localStorage.getItem('buglens')||'{}');
-delete s[n];
-localStorage.setItem('buglens',JSON.stringify(s));
+let store=JSON.parse(localStorage.getItem("buglens")||"{}");
+if(!store[n]) return;
+
+delete store[n];
+localStorage.setItem("buglens",JSON.stringify(store));
 loadSaved();
 }
 
-/* ---------------- PYODIDE ---------------- */
+/* PYODIDE */
 let pyodide;
 let ready=false;
 
-async function initPy(){
+async function init(){
 pyodide=await loadPyodide();
 ready=true;
 }
-initPy();
+init();
 
-async function runPython(code){
+async function runPython(c){
 if(!ready){
 out.innerHTML="<div class='error'>Python loading...</div>";
 return;
 }
 
 try{
-let result=await pyodide.runPythonAsync(code);
-out.innerHTML="<div class='box'>"+result+"</div>";
+let r=await pyodide.runPythonAsync(c);
+out.innerHTML="<div class='box'>"+r+"</div>";
 }
-catch(err){
-out.innerHTML="<div class='error'>⚠ Code may be incomplete or missing statements<br><br>"+err+"</div>";
+catch(e){
+out.innerHTML="<div class='error'>Code may be incomplete or missing statements</div>";
 }
 }
 
-/* ---------------- RUN ---------------- */
+/* RUN */
 function runCode(){
-const c=code.value;
+let c=code.value;
 
-if(lang.value==='python'){
+if(lang.value==="python"){
 runPython(c);
 return;
 }
 
-/* C SIMULATION */
 let output=[];
-if(c.includes('printf')){
+if(c.includes("printf")){
 let m=c.match(/\"(.*?)\"/g);
-if(m) m.forEach(x=>output.push(x.replace(/\"/g,'')));
+if(m) m.forEach(x=>output.push(x.replace(/\"/g,"")));
 }
 
-out.innerHTML=
-"<div class='box'>"+
-(output.length?output.join("\n"):"⚠ code may be incomplete")+
-"</div>";
+out.innerHTML="<div class='box'>"+(output.length?output.join("\n"):"code may be incomplete")+"</div>";
 }
 
-/* INIT */
 updateLines();
 loadSaved();
 
