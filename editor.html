@@ -2,23 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BugLens IDE</title>
+<title>Debugify</title>
 
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;color:#e2e8f0;}
-.top{padding:10px;background:#111827;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-select,input,button{padding:8px;border:none;border-radius:6px;}
-button{background:#22c55e;color:white;cursor:pointer;}
-button.icon{background:#334155;}
+body{margin:0;font-family:Arial;background:#0f172a;color:white;}
+.top{padding:10px;background:#111827;display:flex;gap:8px;flex-wrap:wrap;}
+button,select{padding:8px;border-radius:6px;border:none;}
+button{cursor:pointer;background:#22c55e;color:white;}
+button.gray{background:#334155;}
 .container{display:flex;height:calc(100vh - 60px);}
-.editor{width:50%;display:flex;background:#0b1220;}
-.lines{width:50px;background:#111827;padding:10px;text-align:right;font-size:12px;color:#64748b;}
-textarea{width:100%;background:#0b1220;color:white;border:none;outline:none;padding:10px;font-family:monospace;font-size:14px;resize:none;}
-.panel{width:50%;padding:10px;overflow:auto;border-left:1px solid #1f2937;}
-.box{background:#0b1220;padding:10px;border-radius:8px;white-space:pre-wrap;}
-.error{background:#1e293b;border-left:4px solid red;padding:8px;margin:6px 0;}
-.ok{color:#22c55e;}
+textarea{width:50%;padding:10px;background:#0b1220;color:white;border:none;outline:none;font-family:monospace;}
+.output{width:50%;padding:10px;overflow:auto;border-left:1px solid #1f2937;}
+.box{background:#0b1220;padding:10px;border-radius:6px;white-space:pre-wrap;}
+.error{color:#f87171;}
+.ok{color:#4ade80;}
 </style>
 
 </head>
@@ -31,33 +28,26 @@ textarea{width:100%;background:#0b1220;color:white;border:none;outline:none;padd
 <option value="c">C</option>
 </select>
 
-<button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
-<button onclick="showSuggestions()">Suggestions</button>
+<button onclick="checkCode()">Check</button>
+<button onclick="showSuggestions()">Suggest</button>
 
-<button class="icon" onclick="undo()">↶ Undo</button>
-<button class="icon" onclick="redo()">↷ Redo</button>
+<button onclick="undo()" class="gray">↶ Undo</button>
+<button onclick="redo()" class="gray">↷ Redo</button>
+
+<button onclick="saveCode()" class="gray">💾 Save</button>
+<button onclick="loadCode()" class="gray">📂 Load</button>
 
 </div>
 
 <div class="container">
-
-<div class="editor">
-<div class="lines" id="lines">1</div>
-<textarea id="code" oninput="pushHistory();updateLines()"></textarea>
-</div>
-
-<div class="panel">
-
-<div id="out" class="ok">Write code and run</div>
-
-</div>
+<textarea id="code" oninput="pushHistory()"></textarea>
+<div class="output" id="out">Write code...</div>
 </div>
 
 <script>
 
 const code=document.getElementById("code");
-const lines=document.getElementById("lines");
 const out=document.getElementById("out");
 const lang=document.getElementById("lang");
 
@@ -71,11 +61,11 @@ if(history.length>50) history.shift();
 redoStack=[];
 }
 
+/* ---------------- UNDO / REDO ---------------- */
 function undo(){
 if(history.length>1){
 redoStack.push(history.pop());
 code.value=history[history.length-1]||"";
-updateLines();
 }
 }
 
@@ -84,16 +74,22 @@ if(redoStack.length){
 let v=redoStack.pop();
 history.push(v);
 code.value=v;
-updateLines();
 }
 }
 
-/* ---------------- LINE ---------------- */
-function updateLines(){
-let c=code.value.split("\n").length;
-let t="";
-for(let i=1;i<=c;i++) t+=i+"<br>";
-lines.innerHTML=t;
+/* ---------------- SAVE / LOAD ---------------- */
+function saveCode(){
+localStorage.setItem("buglens_code", code.value);
+out.innerHTML="<div class='ok'>Code Saved ✅</div>";
+}
+
+function loadCode(){
+let data=localStorage.getItem("buglens_code");
+if(data){
+code.value=data;
+pushHistory();
+out.innerHTML="<div class='ok'>Code Loaded 📂</div>";
+}
 }
 
 /* ---------------- CHECK ---------------- */
@@ -101,84 +97,61 @@ function checkCode(){
 let c=code.value;
 let err=[];
 
-if(!c.trim()){
-out.innerHTML="<div class='error'>Empty code</div>";
-return;
-}
+if(!c.trim()) err.push("Empty code");
 
 if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
 err.push("Bracket mismatch");
 
-if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)
-err.push("Brace mismatch");
-
 if(lang.value==="c"){
 if(!c.includes("main")) err.push("Missing main()");
-if(!c.includes("printf")) err.push("No printf found");
 }
 
-if(err.length)
-out.innerHTML="<div class='error'>"+err.join("<br>")+"</div>";
-else
-out.innerHTML="<div class='ok'>No issues found 🎉</div>";
+out.innerHTML=err.length?
+"<div class='error'>"+err.join("<br>")+"</div>":
+"<div class='ok'>No issues 🎉</div>";
 }
 
-/* ---------------- SUGGESTIONS (SAFE MODE) ---------------- */
+/* ---------------- SUGGESTIONS ---------------- */
 function showSuggestions(){
 let c=code.value;
 let s=[];
 
 if(lang.value==="c"){
-if(c.includes("stdio") && !c.includes("stdio.h"))
-s.push("Add #include <stdio.h>");
-
-if(c.includes("main") && !c.includes("return"))
-s.push("Add return 0;");
-
-if(!c.includes("printf"))
-s.push("Add printf() for output");
+if(!c.includes("#include <stdio.h>")) s.push("Add #include <stdio.h>");
+if(!c.includes("return")) s.push("Add return 0;");
+if(!c.includes("printf")) s.push("Add printf()");
 }
 
-if(s.length===0){
-out.innerHTML="<div class='ok'>No suggestions 🎉</div>";
-return;
+out.innerHTML=s.length?
+"<div class='box'>🔧 Suggestions:<br>"+s.map(x=>"• "+x).join("<br>")+"</div>":
+"<div class='ok'>All good 🎉</div>";
 }
 
-out.innerHTML=`
-<div class="box">
-🔧 Suggestions:<br><br>
-${s.map(x=>"• "+x).join("<br>")}<br><br>
-⚠ Safe mode (no auto changes)
-</div>
-`;
-}
-
-/* ---------------- RUN ENGINE ---------------- */
+/* ---------------- RUN ---------------- */
 function runCode(){
 let c=code.value;
 let output=[];
 
 /* PYTHON SIMPLE */
 if(lang.value==="python"){
-let lines=c.split("\n");
-for(let l of lines){
+c.split("\n").forEach(l=>{
 l=l.trim();
 if(l.startsWith("print(")){
 output.push(l.slice(6,-1));
 }
-}
+});
 }
 
-/* C SIMPLE FIXED PRINTF */
+/* C FIXED PRINTF */
 if(lang.value==="c"){
-let match=c.match(/printf\s*\("([^"]*)"(?:\s*,\s*([^)]+))?\)/);
+let m=c.match(/printf\s*\("([^"])"(?:\s,\s*([^)]+))?\)/);
 
-if(match){
-let text=match[1];
-let val=match[2];
+if(m){
+let text=m[1];
+let val=m[2];
 
 if(val){
-try{ val=eval(val); }catch(e){}
+try{val=eval(val);}catch(e){}
 text=text.replace("%d",val);
 }
 
@@ -186,17 +159,13 @@ output.push(text);
 }
 }
 
-let final="(no output)";
-
-if(output.length>0) final=output.join("\n");
-else final="⚠ code may be incomplete";
-
-out.innerHTML="<div class='box'>"+final+"</div>";
+out.innerHTML="<div class='box'>"+
+(output.length?output.join("\n"):"⚠ code may be incomplete")+
+"</div>";
 }
 
 /* INIT */
 pushHistory();
-updateLines();
 
 </script>
 
