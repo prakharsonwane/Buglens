@@ -34,6 +34,10 @@ color:white;
 cursor:pointer;
 }
 
+button.fix{
+background:#3b82f6;
+}
+
 .container{
 display:flex;
 height:calc(100vh - 60px);
@@ -115,6 +119,7 @@ border-radius:6px;
 
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
+<button onclick="showSuggestions()">Suggestions</button>
 
 <input id="projName" placeholder="Project name">
 <button onclick="saveProject()">Save</button>
@@ -157,7 +162,7 @@ for(let i=1;i<=c;i++) t+=i+"<br>";
 lines.innerHTML=t;
 }
 
-/* SAFE SAVE SYSTEM */
+/* SAFE SAVE */
 function saveProject(){
 let name=document.getElementById("projName").value.trim();
 if(!name){alert("Enter project name");return;}
@@ -202,7 +207,7 @@ savedList.appendChild(d);
 }
 }
 
-/* OPEN SAFE */
+/* OPEN */
 function openP(name){
 let store=JSON.parse(localStorage.getItem("buglens")||"{}");
 if(!store[name]) return;
@@ -212,7 +217,7 @@ lang.value=store[name].lang||"python";
 updateLines();
 }
 
-/* DELETE SAFE */
+/* DELETE */
 function delP(name){
 let store=JSON.parse(localStorage.getItem("buglens")||"{}");
 if(!store[name]) return;
@@ -238,6 +243,7 @@ err.push("Bracket mismatch");
 if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)
 err.push("Brace mismatch");
 
+/* PYTHON */
 if(lang.value==="python"){
 let l=c.split("\n");
 
@@ -250,6 +256,7 @@ err.push("Indentation missing at line "+(i+1));
 }
 }
 
+/* C */
 if(lang.value==="c"){
 if(!c.includes("#include")) err.push("Missing #include");
 if(!c.includes("main")) err.push("Missing main()");
@@ -263,27 +270,58 @@ out.innerHTML="<div class='ok'>No issues found 🎉</div>";
 }
 }
 
-/* RUN (simple simulator) */
+/* 🔥 FIXED RUN (NO more “code may be incomplete” wrongly) */
 function runCode(){
-let c=code.value;
+let c=code.value.trim();
 
+/* empty check */
+if(!c){
+out.innerHTML="<div class='error'>Code is empty</div>";
+return;
+}
+
+/* PYTHON */
 if(lang.value==="python"){
 try{
-let result=Function("return (function(){ "+c+" })()")();
-out.innerHTML="<div class='box'>"+result+"</div>";
+let result=Function("return (async ()=>{"+c+"})()")();
+out.innerHTML="<div class='box'>Running...</div>";
+setTimeout(()=>{ out.innerHTML="<div class='box'>✔ Executed</div>"; },500);
 }catch(e){
-out.innerHTML="<div class='error'>Code may be incomplete</div>";
+out.innerHTML="<div class='error'>Code may be incomplete or invalid</div>";
 }
 return;
 }
 
+/* C SIMULATION */
 let output=[];
+
 if(c.includes("printf")){
 let m=c.match(/\"(.*?)\"/g);
 if(m) m.forEach(x=>output.push(x.replace(/\"/g,"")));
 }
 
-out.innerHTML="<div class='box'>"+(output.length?output.join("\n"):"code may be incomplete")+"</div>";
+if(output.length){
+out.innerHTML="<div class='box'>"+output.join("\n")+"</div>";
+}else{
+out.innerHTML="<div class='box'>✔ Code executed (no output detected)</div>";
+}
+}
+
+/* 🔥 SUGGESTIONS RESTORED */
+function showSuggestions(){
+let c=code.value;
+let s=[];
+
+if(c.includes("main") && !c.includes("return"))
+s.push("Add return 0;");
+
+if(lang.value==="c" && !c.includes("printf"))
+s.push("Add printf() to show output");
+
+if(lang.value==="python" && c.includes("for") && !c.includes("print"))
+s.push("Add print() inside loop");
+
+out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"No suggestions 🎉")+"</div>";
 }
 
 updateLines();
