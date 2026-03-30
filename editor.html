@@ -174,7 +174,7 @@ for(let i=1;i<=c;i++) t+=i+'<br>';
 lines.innerHTML=t;
 }
 
-/* ---------------- SAFE AUTO INDENT FIX ---------------- */
+/* ---------------- SAFE AUTO INDENT (NO UNDEFINED EVER) ---------------- */
 code.addEventListener("keydown", function(e){
 
 if(e.key==="Tab"){
@@ -188,21 +188,31 @@ updateLines();
 }
 
 if(e.key==="Enter"){
+e.preventDefault();
+
 let value=this.value;
 let pos=this.selectionStart;
 
+/* safe line extraction */
 let before=value.substring(0,pos);
-let line=before.split("\n").pop();
+let line=before.split("\n").pop() || "";
 
-/* ✅ SAFE FIX (NO undefined error) */
-let match = line.match(/^\s*/);
-let indent = match ? match[0] : "";
+/* manual indentation (100% safe) */
+let indent="";
+for(let i=0;i<line.length;i++){
+if(line[i]===" ") indent+=" ";
+else break;
+}
 
-setTimeout(()=>{
-this.value=this.value.substring(0,pos)+"\n"+indent;
+/* auto indent after ':' */
+if(line.trim().endsWith(":")){
+indent+="    ";
+}
+
+this.value=value.substring(0,pos)+"\n"+indent+value.substring(pos);
 this.selectionStart=this.selectionEnd=pos+1+indent.length;
+
 updateLines();
-},0);
 }
 });
 
@@ -236,7 +246,7 @@ err.push('Bracket mismatch');
 if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)
 err.push('Brace mismatch');
 
-/* PYTHON CHECK */
+/* PYTHON */
 if(lang.value==='python'){
 const l=c.split('\n');
 
@@ -255,7 +265,7 @@ err.push("Line "+(i+1)+" missing ':'");
 }
 }
 
-/* C CHECK */
+/* C */
 if(lang.value==='c'){
 if(!c.includes('#include')) err.push('Missing #include');
 if(c.includes('stdio')&&!c.includes('stdio.h')) err.push('Possible typo stdio.h');
@@ -370,7 +380,7 @@ runPython(c);
 return;
 }
 
-/* SIMPLE C SIMULATION */
+/* C SIMULATION */
 let output=[];
 if(c.includes('printf')){
 let m=c.match(/\"(.*?)\"/g);
