@@ -282,44 +282,42 @@ try{
 
 let output = "";
 
-// clean comments
+// remove comments
 let clean = code.replace(/\/\/.*$/gm, "");
 
-// simple variable store
+// store int variables
 let vars = {};
-
-// int a = 10;
-clean.replace(/int\s+(\w+)\s*=\s*(\d+)\s*;/g, (m, v, val)=>{
+clean.replace(/int\s+(\w+)\s*=\s*([0-9]+)\s*;/g,(m,v,val)=>{
 vars[v] = val;
 });
 
-// printf handling (VERY flexible)
-let printfRegex = /printf\s*\(\s*"([^"])"\s(?:,\s*(\w+))?\s*\)/g;
+// improved printf parser
+let regex = /printf\s*\(\s*"([^"])"(?:\s,\s*(\w+))?\s*\)\s*;/g;
 
 let match;
 
-while((match = printfRegex.exec(clean)) !== null){
+while((match = regex.exec(clean)) !== null){
 
 let text = match[1];
 let varName = match[2];
 
-// replace %d
-if(varName && vars[varName]){
-text = text.replace("%d", vars[varName]);
+// handle %d properly
+if(varName && vars[varName] !== undefined){
+text = text.replace(/%d/g, vars[varName]);
 }
 
-// remove \n for display cleanly
-text = text.replace(/\\n/g, "");
+// handle \n
+text = text.replace(/\\n/g,"");
 
 output += text + "\n";
 }
 
 output = output.trim();
 
-if(output === ""){
-out.innerHTML = "<div class='error'>no output</div>";
-}else{
+if(output.length > 0){
 out.innerHTML = "<div class='box'>" + output + "</div>";
+}else{
+out.innerHTML = "<div class='error'>no output</div>";
 }
 
 }catch(e){
