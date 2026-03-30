@@ -282,52 +282,44 @@ try{
 
 let output = "";
 
-// remove comments
+// clean comments
 let clean = code.replace(/\/\/.*$/gm, "");
 
-// extract simple int variables
+// simple variable store
 let vars = {};
-let varMatches = clean.match(/int\s+(\w+)\s*=\s*(\d+)\s*;/g);
 
-if(varMatches){
-varMatches.forEach(v=>{
-let parts = v.match(/int\s+(\w+)\s*=\s*(\d+)/);
-if(parts){
-vars[parts[1]] = parts[2];
-}
+// int a = 10;
+clean.replace(/int\s+(\w+)\s*=\s*(\d+)\s*;/g, (m, v, val)=>{
+vars[v] = val;
 });
-}
 
-// detect printf lines
-let lines = clean.split(";");
+// printf handling (VERY flexible)
+let printfRegex = /printf\s*\(\s*"([^"])"\s(?:,\s*(\w+))?\s*\)/g;
 
-lines.forEach(line=>{
+let match;
 
-if(line.includes("printf")){
-
-// handle %d
-let match = line.match(/printf\s*\("([^"])"(?:\s,\s*(\w+))?\)/);
-
-if(match){
+while((match = printfRegex.exec(clean)) !== null){
 
 let text = match[1];
 let varName = match[2];
 
-if(text.includes("%d") && varName && vars[varName]){
+// replace %d
+if(varName && vars[varName]){
 text = text.replace("%d", vars[varName]);
 }
+
+// remove \n for display cleanly
+text = text.replace(/\\n/g, "");
 
 output += text + "\n";
 }
 
-}
+output = output.trim();
 
-});
-
-if(output.trim() === ""){
+if(output === ""){
 out.innerHTML = "<div class='error'>no output</div>";
 }else{
-out.innerHTML = "<div class='box'>" + output.trim() + "</div>";
+out.innerHTML = "<div class='box'>" + output + "</div>";
 }
 
 }catch(e){
