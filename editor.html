@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BugLens</title>
 
+<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+
 <style>
 body{
 margin:0;
@@ -32,10 +34,6 @@ button{
 background:#22c55e;
 color:white;
 cursor:pointer;
-}
-
-button.fix{
-background:#3b82f6;
 }
 
 .container{
@@ -147,6 +145,7 @@ border-radius:6px;
 
 <script>
 
+let pyodide;
 const code=document.getElementById("code");
 const lines=document.getElementById("lines");
 const out=document.getElementById("out");
@@ -155,6 +154,12 @@ const lang=document.getElementById("lang");
 
 code.addEventListener("input", updateLines);
 
+/* ---------------- LOAD PYODIDE ---------------- */
+async function loadPy(){
+pyodide = await loadPyodide();
+}
+loadPy();
+
 function updateLines(){
 let c=code.value.split("\n").length;
 let t="";
@@ -162,7 +167,7 @@ for(let i=1;i<=c;i++) t+=i+"<br>";
 lines.innerHTML=t;
 }
 
-/* SAFE SAVE */
+/* ---------------- SAVE ---------------- */
 function saveProject(){
 let name=document.getElementById("projName").value.trim();
 if(!name){alert("Enter project name");return;}
@@ -178,7 +183,7 @@ localStorage.setItem("buglens",JSON.stringify(store));
 loadSaved();
 }
 
-/* SAFE LOAD */
+/* ---------------- LOAD ---------------- */
 function loadSaved(){
 let store=JSON.parse(localStorage.getItem("buglens")||"{}");
 savedList.innerHTML="";
@@ -207,7 +212,7 @@ savedList.appendChild(d);
 }
 }
 
-/* OPEN */
+/* ---------------- OPEN ---------------- */
 function openP(name){
 let store=JSON.parse(localStorage.getItem("buglens")||"{}");
 if(!store[name]) return;
@@ -217,17 +222,15 @@ lang.value=store[name].lang||"python";
 updateLines();
 }
 
-/* DELETE */
+/* ---------------- DELETE ---------------- */
 function delP(name){
 let store=JSON.parse(localStorage.getItem("buglens")||"{}");
-if(!store[name]) return;
-
 delete store[name];
 localStorage.setItem("buglens",JSON.stringify(store));
 loadSaved();
 }
 
-/* CHECK */
+/* ---------------- CHECK ---------------- */
 function checkCode(){
 let c=code.value;
 let err=[];
@@ -243,10 +246,8 @@ err.push("Bracket mismatch");
 if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)
 err.push("Brace mismatch");
 
-/* PYTHON */
 if(lang.value==="python"){
 let l=c.split("\n");
-
 for(let i=0;i<l.length;i++){
 if(l[i].trim().endsWith(":")){
 if(l[i+1] && !l[i+1].startsWith(" ")){
@@ -256,11 +257,9 @@ err.push("Indentation missing at line "+(i+1));
 }
 }
 
-/* C */
 if(lang.value==="c"){
 if(!c.includes("#include")) err.push("Missing #include");
 if(!c.includes("main")) err.push("Missing main()");
-if(!c.includes("printf")) err.push("No output (printf missing)");
 }
 
 if(err.length){
@@ -270,44 +269,7 @@ out.innerHTML="<div class='ok'>No issues found 🎉</div>";
 }
 }
 
-/* 🔥 FIXED RUN (NO more “code may be incomplete” wrongly) */
-function runCode(){
-let c=code.value.trim();
-
-/* empty check */
-if(!c){
-out.innerHTML="<div class='error'>Code is empty</div>";
-return;
-}
-
-/* PYTHON */
-if(lang.value==="python"){
-try{
-let result=Function("return (async ()=>{"+c+"})()")();
-out.innerHTML="<div class='box'>Running...</div>";
-setTimeout(()=>{ out.innerHTML="<div class='box'>✔ Executed</div>"; },500);
-}catch(e){
-out.innerHTML="<div class='error'>Code may be incomplete or invalid</div>";
-}
-return;
-}
-
-/* C SIMULATION */
-let output=[];
-
-if(c.includes("printf")){
-let m=c.match(/\"(.*?)\"/g);
-if(m) m.forEach(x=>output.push(x.replace(/\"/g,"")));
-}
-
-if(output.length){
-out.innerHTML="<div class='box'>"+output.join("\n")+"</div>";
-}else{
-out.innerHTML="<div class='box'>✔ Code executed (no output detected)</div>";
-}
-}
-
-/* 🔥 SUGGESTIONS RESTORED */
+/* ---------------- SUGGESTIONS ---------------- */
 function showSuggestions(){
 let c=code.value;
 let s=[];
@@ -315,15 +277,70 @@ let s=[];
 if(c.includes("main") && !c.includes("return"))
 s.push("Add return 0;");
 
-if(lang.value==="c" && !c.includes("printf"))
-s.push("Add printf() to show output");
-
 if(lang.value==="python" && c.includes("for") && !c.includes("print"))
 s.push("Add print() inside loop");
+
+if(lang.value==="c" && !c.includes("printf"))
+s.push("Add printf for output");
 
 out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"No suggestions 🎉")+"</div>";
 }
 
+/* ---------------- PYTHON RUN ---------------- */
+async function runPython(c){
+try{
+out.innerHTML="<div class='box'>Running...</div>";
+
+let result = await pyodide.runPythonAsync(c);
+
+if(result===undefined || result===null || result===""){
+out.innerHTML="<div class='box'>Python executed (no output)</div>";
+}else{
+out.innerHTML="<div class='box'>"+result+"</div>";
+}
+
+}catch(e){
+out.innerHTML="<div class='error'>Code may be incomplete or invalid</div>";
+}
+}
+
+/* ---------------- RUN ---------------- */
+function runCode(){
+let c=code.value.trim();
+
+if(!c){
+out.innerHTML="<div class='error'>Code is empty</div>";
+return;
+}
+
+if(lang.value==="python"){
+runPython(c);
+return;
+}
+
+/* C SIMULATION */
+let output=[];
+let hasPrintf=c.includes("printf");
+
+if(hasPrintf){
+let m=c.match(/\"(.*?)\"/g);
+if(m){
+m.forEach(x=>output.push(x.replace(/\"/g,"")));
+}
+}
+
+if(output.length>0){
+out.innerHTML="<div class='box'>"+output.join("\n")+"</div>";
+}
+else if(hasPrintf){
+out.innerHTML="<div class='box'>C code executed (no visible output)</div>";
+}
+else{
+out.innerHTML="<div class='error'>No output function found</div>";
+}
+}
+
+/* INIT */
 updateLines();
 loadSaved();
 
