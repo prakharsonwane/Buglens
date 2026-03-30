@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Debugify</title>
+<title>BugLens</title>
 
 <style>
 body{
@@ -34,8 +34,8 @@ color:white;
 cursor:pointer;
 }
 
-button.icon{
-background:#334155;
+button.fix{
+background:#3b82f6;
 }
 
 .container{
@@ -112,10 +112,6 @@ padding:6px;
 margin-top:5px;
 border-radius:6px;
 }
-
-button.fix{
-background:#3b82f6;
-}
 </style>
 
 </head>
@@ -142,7 +138,7 @@ background:#3b82f6;
 
 <div class="editor">
 <div class="lines" id="lines">1</div>
-<textarea id="code" oninput="updateLines()"></textarea>
+<textarea id="code"></textarea>
 </div>
 
 <div class="panel">
@@ -157,7 +153,7 @@ background:#3b82f6;
 </div>
 </div>
 
-<!-- 🔥 PYODIDE -->
+<!-- PYODIDE -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
 
 <script>
@@ -168,12 +164,47 @@ const out=document.getElementById('out');
 const savedList=document.getElementById('savedList');
 const lang=document.getElementById('lang');
 
+code.addEventListener('input', updateLines);
+
+/* LINE NUMBERS */
 function updateLines(){
 const c=code.value.split('\n').length;
 let t='';
 for(let i=1;i<=c;i++) t+=i+'<br>';
 lines.innerHTML=t;
 }
+
+/* ---------------- SAFE AUTO INDENT FIX ---------------- */
+code.addEventListener("keydown", function(e){
+
+if(e.key==="Tab"){
+e.preventDefault();
+let start=this.selectionStart;
+let end=this.selectionEnd;
+
+this.value=this.value.substring(0,start)+"    "+this.value.substring(end);
+this.selectionStart=this.selectionEnd=start+4;
+updateLines();
+}
+
+if(e.key==="Enter"){
+let value=this.value;
+let pos=this.selectionStart;
+
+let before=value.substring(0,pos);
+let line=before.split("\n").pop();
+
+/* ✅ SAFE FIX (NO undefined error) */
+let match = line.match(/^\s*/);
+let indent = match ? match[0] : "";
+
+setTimeout(()=>{
+this.value=this.value.substring(0,pos)+"\n"+indent;
+this.selectionStart=this.selectionEnd=pos+1+indent.length;
+updateLines();
+},0);
+}
+});
 
 /* ---------------- LANGUAGE DETECT ---------------- */
 function detectLang(c){
@@ -196,7 +227,7 @@ return;
 let detected=detectLang(c);
 
 if(detected!==lang.value && detected!=='unknown'){
-warn.push('Language mismatch detected');
+warn.push('⚠ Language mismatch detected');
 }
 
 if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
@@ -205,38 +236,46 @@ err.push('Bracket mismatch');
 if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)
 err.push('Brace mismatch');
 
+/* PYTHON CHECK */
 if(lang.value==='python'){
 const l=c.split('\n');
+
 for(let i=0;i<l.length;i++){
-if(/^(if|for|while|def|else|elif)/.test(l[i]) && !l[i].trim().endsWith(':'))
-err.push('Line '+(i+1)+' missing :');
+
+if(l[i].trim().endsWith(":")){
+let next=l[i+1];
+if(next && !next.startsWith(" ")){
+err.push("Line "+(i+1)+": Missing indentation after ':'");
 }
 }
 
+if(/^(if|for|while|def|else|elif)/.test(l[i]) && !l[i].trim().endsWith(":")){
+err.push("Line "+(i+1)+" missing ':'");
+}
+}
+}
+
+/* C CHECK */
 if(lang.value==='c'){
 if(!c.includes('#include')) err.push('Missing #include');
 if(c.includes('stdio')&&!c.includes('stdio.h')) err.push('Possible typo stdio.h');
 if(!c.includes('main')) err.push('Missing main()');
-if(c.includes('main')&&!c.includes('return')) warn.push('Missing return statement');
 if(!c.includes('printf')) warn.push('No output (printf missing)');
 }
 
+/* OUTPUT */
 let msg='';
 if(err.length) msg+='<div class="error">'+err.join('<br>')+'</div>';
-if(warn.length) msg+='<div class="box">Warnings:<br>'+warn.join('<br>')+'</div>';
-if(!err.length && !warn.length)
-msg='<div class="ok">No issues found 🎉</div>';
+if(warn.length) msg+='<div class="box">'+warn.join('<br>')+'</div>';
+if(!err.length && !warn.length) msg='<div class="ok">No issues found 🎉</div>';
 
 out.innerHTML=msg;
 }
 
 /* ---------------- SUGGESTIONS ---------------- */
 function showSuggestions(){
-const c=code.value;
+let c=code.value;
 let s=[];
-
-if(c.includes('stdio') && !c.includes('stdio.h'))
-s.push("Add #include <stdio.h>");
 
 if(c.includes('main') && !c.includes('return'))
 s.push("Add return 0;");
@@ -249,12 +288,7 @@ out.innerHTML="<div class='ok'>No suggestions 🎉</div>";
 return;
 }
 
-out.innerHTML=`
-<div class="box">
-🔧 Suggestions:<br><br>
-${s.map(x=>"• "+x).join("<br>")}
-</div>
-`;
+out.innerHTML="<div class='box'>"+s.join("<br>")+"</div>";
 }
 
 /* ---------------- SAVE ---------------- */
@@ -302,28 +336,28 @@ localStorage.setItem('buglens',JSON.stringify(s));
 loadSaved();
 }
 
-/* ---------------- PYODIDE ENGINE ---------------- */
-let pyodideReady=false;
+/* ---------------- PYODIDE ---------------- */
 let pyodide;
+let ready=false;
 
 async function initPy(){
-pyodide = await loadPyodide();
-pyodideReady=true;
+pyodide=await loadPyodide();
+ready=true;
 }
 initPy();
 
 async function runPython(code){
-if(!pyodideReady){
-out.innerHTML="<div class='error'>Python engine loading...</div>";
+if(!ready){
+out.innerHTML="<div class='error'>Python loading...</div>";
 return;
 }
 
 try{
-let result = await pyodide.runPythonAsync(code);
+let result=await pyodide.runPythonAsync(code);
 out.innerHTML="<div class='box'>"+result+"</div>";
 }
 catch(err){
-out.innerHTML="<div class='error'>"+err+"</div>";
+out.innerHTML="<div class='error'>⚠ Code may be incomplete or missing statements<br><br>"+err+"</div>";
 }
 }
 
@@ -336,14 +370,15 @@ runPython(c);
 return;
 }
 
-/* C SIMPLE (same as before) */
+/* SIMPLE C SIMULATION */
 let output=[];
 if(c.includes('printf')){
-const m=c.match(/\"(.*?)\"/g);
+let m=c.match(/\"(.*?)\"/g);
 if(m) m.forEach(x=>output.push(x.replace(/\"/g,'')));
 }
 
-out.innerHTML="<div class='box'>"+
+out.innerHTML=
+"<div class='box'>"+
 (output.length?output.join("\n"):"⚠ code may be incomplete")+
 "</div>";
 }
