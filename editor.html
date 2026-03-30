@@ -34,10 +34,6 @@ color:white;
 cursor:pointer;
 }
 
-button.fix{
-background:#3b82f6;
-}
-
 .container{
 display:flex;
 height:calc(100vh - 60px);
@@ -96,14 +92,6 @@ margin:6px 0;
 color:#22c55e;
 }
 
-.saveBox{
-margin-top:10px;
-background:#0b1220;
-padding:10px;
-border:1px solid #1f2937;
-border-radius:8px;
-}
-
 .savedItem{
 display:flex;
 justify-content:space-between;
@@ -127,7 +115,6 @@ border-radius:6px;
 
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
-<button onclick="showSuggestions()">Suggestions</button>
 
 <input id="projName" placeholder="Project name">
 <button onclick="saveProject()">Save</button>
@@ -145,15 +132,13 @@ border-radius:6px;
 
 <div id="out" class="ok">Write code and run</div>
 
-<div class="saveBox">
+<div style="margin-top:10px">
 <b>Saved Projects</b>
 <div id="savedList"></div>
 </div>
 
 </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
 
 <script>
 
@@ -166,54 +151,75 @@ const lang=document.getElementById("lang");
 code.addEventListener("input", updateLines);
 
 function updateLines(){
-let count=code.value.split("\n").length;
+let c=code.value.split("\n").length;
 let t="";
-for(let i=1;i<=count;i++) t+=i+"<br>";
+for(let i=1;i<=c;i++) t+=i+"<br>";
 lines.innerHTML=t;
 }
 
-/* SAFE ENTER + TAB */
-code.addEventListener("keydown", function(e){
+/* SAFE SAVE SYSTEM */
+function saveProject(){
+let name=document.getElementById("projName").value.trim();
+if(!name){alert("Enter project name");return;}
 
-if(e.key==="Tab"){
-e.preventDefault();
-let s=this.selectionStart;
-this.value=this.value.slice(0,s)+"    "+this.value.slice(s);
-this.selectionStart=this.selectionEnd=s+4;
+let store=JSON.parse(localStorage.getItem("buglens")||"{}");
+
+store[name]={
+code:code.value||"",
+lang:lang.value
+};
+
+localStorage.setItem("buglens",JSON.stringify(store));
+loadSaved();
+}
+
+/* SAFE LOAD */
+function loadSaved(){
+let store=JSON.parse(localStorage.getItem("buglens")||"{}");
+savedList.innerHTML="";
+
+for(let k in store){
+
+let d=document.createElement("div");
+d.className="savedItem";
+
+let span=document.createElement("span");
+span.innerText=k;
+
+let openBtn=document.createElement("button");
+openBtn.innerText="Open";
+openBtn.onclick=()=>openP(k);
+
+let delBtn=document.createElement("button");
+delBtn.innerText="X";
+delBtn.onclick=()=>delP(k);
+
+d.appendChild(span);
+d.appendChild(openBtn);
+d.appendChild(delBtn);
+
+savedList.appendChild(d);
+}
+}
+
+/* OPEN SAFE */
+function openP(name){
+let store=JSON.parse(localStorage.getItem("buglens")||"{}");
+if(!store[name]) return;
+
+code.value=store[name].code||"";
+lang.value=store[name].lang||"python";
 updateLines();
 }
 
-if(e.key==="Enter"){
-e.preventDefault();
+/* DELETE SAFE */
+function delP(name){
+let store=JSON.parse(localStorage.getItem("buglens")||"{}");
+if(!store[name]) return;
 
-let v=this.value;
-let pos=this.selectionStart;
-let before=v.slice(0,pos);
-let line=before.split("\n").pop() || "";
-
-let indent="";
-for(let i=0;i<line.length;i++){
-if(line[i]===" ") indent+=" ";
-else break;
-}
-
-if(line.trim().endsWith(":")){
-indent+="    ";
-}
-
-this.value=v.slice(0,pos)+"\n"+indent+v.slice(pos);
-this.selectionStart=this.selectionEnd=pos+1+indent.length;
-
-updateLines();
-}
-});
-
-/* LANGUAGE DETECT */
-function detectLang(c){
-let cScore=0,pyScore=0;
-if(c.includes("#include")||c.includes("printf")) cScore++;
-if(c.includes("print(")||c.includes("def ")) pyScore++;
-return cScore>pyScore?"c":"python";
+delete store[name];
+localStorage.setItem("buglens",JSON.stringify(store));
+loadSaved();
 }
 
 /* CHECK */
@@ -232,28 +238,24 @@ err.push("Bracket mismatch");
 if((c.match(/\{/g)||[]).length!=(c.match(/\}/g)||[]).length)
 err.push("Brace mismatch");
 
-/* PYTHON */
 if(lang.value==="python"){
-let linesArr=c.split("\n");
+let l=c.split("\n");
 
-for(let i=0;i<linesArr.length;i++){
-if(linesArr[i].trim().endsWith(":")){
-let next=linesArr[i+1];
-if(next && !next.startsWith(" ")){
-err.push("Line "+(i+1)+": indentation missing");
+for(let i=0;i<l.length;i++){
+if(l[i].trim().endsWith(":")){
+if(l[i+1] && !l[i+1].startsWith(" ")){
+err.push("Indentation missing at line "+(i+1));
 }
 }
 }
 }
 
-/* C */
 if(lang.value==="c"){
 if(!c.includes("#include")) err.push("Missing #include");
 if(!c.includes("main")) err.push("Missing main()");
-if(!c.includes("printf")) err.push("No output function printf()");
+if(!c.includes("printf")) err.push("No output (printf missing)");
 }
 
-/* OUTPUT */
 if(err.length){
 out.innerHTML="<div class='error'>"+err.join("<br>")+"</div>";
 }else{
@@ -261,107 +263,17 @@ out.innerHTML="<div class='ok'>No issues found 🎉</div>";
 }
 }
 
-/* SUGGESTIONS */
-function showSuggestions(){
-let c=code.value;
-let s=[];
-
-if(c.includes("main") && !c.includes("return"))
-s.push("Add return 0;");
-
-if(lang.value==="c" && !c.includes("printf"))
-s.push("Add printf()");
-
-out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"No suggestions 🎉")+"</div>";
-}
-
-/* SAVE SAFE */
-function saveProject(){
-let name=document.getElementById("projName").value.trim();
-if(!name){alert("Enter name");return;}
-
-let store=JSON.parse(localStorage.getItem("buglens")||"{}");
-
-store[name]={
-code:code.value||"",
-lang:lang.value
-};
-
-localStorage.setItem("buglens",JSON.stringify(store));
-loadSaved();
-}
-
-/* LOAD SAFE */
-function loadSaved(){
-let store=JSON.parse(localStorage.getItem("buglens")||"{}");
-savedList.innerHTML="";
-
-for(let k in store){
-
-let d=document.createElement("div");
-d.className="savedItem";
-
-/* SAFE BUTTONS (NO undefined bug) */
-d.innerHTML=
-"<span>"+k+"</span>"+
-"<button onclick=\"openP('"+k.replace(/'/g,"")+"\")\">Open</button>"+
-"<button onclick=\"delP('"+k.replace(/'/g,"")+"\")\">X</button>";
-
-savedList.appendChild(d);
-}
-}
-
-/* OPEN SAFE */
-function openP(n){
-let store=JSON.parse(localStorage.getItem("buglens")||"{}");
-if(!store[n]) return;
-
-code.value=store[n].code||"";
-lang.value=store[n].lang||"python";
-updateLines();
-}
-
-/* DELETE SAFE */
-function delP(n){
-let store=JSON.parse(localStorage.getItem("buglens")||"{}");
-if(!store[n]) return;
-
-delete store[n];
-localStorage.setItem("buglens",JSON.stringify(store));
-loadSaved();
-}
-
-/* PYODIDE */
-let pyodide;
-let ready=false;
-
-async function init(){
-pyodide=await loadPyodide();
-ready=true;
-}
-init();
-
-async function runPython(c){
-if(!ready){
-out.innerHTML="<div class='error'>Python loading...</div>";
-return;
-}
-
-try{
-let r=await pyodide.runPythonAsync(c);
-out.innerHTML="<div class='box'>"+r+"</div>";
-}
-catch(e){
-out.innerHTML="<div class='error'>Code may be incomplete or missing statements</div>";
-}
-}
-
-/* RUN */
+/* RUN (simple simulator) */
 function runCode(){
 let c=code.value;
 
 if(lang.value==="python"){
-runPython(c);
+try{
+let result=Function("return (function(){ "+c+" })()")();
+out.innerHTML="<div class='box'>"+result+"</div>";
+}catch(e){
+out.innerHTML="<div class='error'>Code may be incomplete</div>";
+}
 return;
 }
 
