@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>debugify</title>
+<title>Debugify</title>
 
 <style>
 body{
@@ -81,8 +81,8 @@ border-left:1px solid #1f2937;
 background:#0b1220;
 padding:10px;
 border-radius:8px;
-margin-top:10px;
 white-space:pre-wrap;
+margin-top:10px;
 }
 
 .error{
@@ -131,8 +131,6 @@ background:#3b82f6;
 
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
-
-<!-- 🔥 Suggestion Button -->
 <button class="fix" onclick="showSuggestions()">Suggestions</button>
 
 <input id="projName" placeholder="Project name">
@@ -159,6 +157,9 @@ background:#3b82f6;
 </div>
 </div>
 
+<!-- 🔥 PYODIDE -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+
 <script>
 
 const code=document.getElementById('code');
@@ -174,6 +175,7 @@ for(let i=1;i<=c;i++) t+=i+'<br>';
 lines.innerHTML=t;
 }
 
+/* ---------------- LANGUAGE DETECT ---------------- */
 function detectLang(c){
 let cScore=0,pyScore=0;
 if(c.includes('#include')||c.includes('int main')||c.includes('printf')) cScore+=3;
@@ -181,6 +183,7 @@ if(c.includes('def ')||c.includes('print(')||c.includes('import')) pyScore+=3;
 return cScore>pyScore?'c':pyScore>cScore?'python':'unknown';
 }
 
+/* ---------------- CHECK ---------------- */
 function checkCode(){
 const c=code.value;
 let err=[],warn=[];
@@ -219,17 +222,15 @@ if(!c.includes('printf')) warn.push('No output (printf missing)');
 }
 
 let msg='';
-
 if(err.length) msg+='<div class="error">'+err.join('<br>')+'</div>';
 if(warn.length) msg+='<div class="box">Warnings:<br>'+warn.join('<br>')+'</div>';
-
 if(!err.length && !warn.length)
 msg='<div class="ok">No issues found 🎉</div>';
 
 out.innerHTML=msg;
 }
 
-/* 🔥 NEW: Suggestion System */
+/* ---------------- SUGGESTIONS ---------------- */
 function showSuggestions(){
 const c=code.value;
 let s=[];
@@ -238,13 +239,10 @@ if(c.includes('stdio') && !c.includes('stdio.h'))
 s.push("Add #include <stdio.h>");
 
 if(c.includes('main') && !c.includes('return'))
-s.push("Add return 0; at end of main()");
+s.push("Add return 0;");
 
 if(lang.value==='c' && !c.includes('printf'))
-s.push("Add printf() for output");
-
-if((c.match(/\(/g)||[]).length !== (c.match(/\)/g)||[]).length)
-s.push("Fix bracket mismatch ()");
+s.push("Add printf()");
 
 if(s.length===0){
 out.innerHTML="<div class='ok'>No suggestions 🎉</div>";
@@ -254,46 +252,12 @@ return;
 out.innerHTML=`
 <div class="box">
 🔧 Suggestions:<br><br>
-${s.map(x=>"• "+x).join("<br>")}<br><br>
-⚠ Safe mode: No automatic changes applied
+${s.map(x=>"• "+x).join("<br>")}
 </div>
 `;
 }
 
-function runCode(){
-const c=code.value;
-let output=[];
-
-if(lang.value==='python'){
-let vars={};
-const lines=c.split('\n');
-
-for(let i=0;i<lines.length;i++){
-const line=lines[i].trim();
-
-if(line.startsWith('print(')){
-const exp=line.slice(line.indexOf('(')+1,line.lastIndexOf(')'));
-output.push(exp);
-}
-}
-}
-
-if(lang.value==='c'){
-if(c.includes('printf')){
-const m=c.match(/\"(.*?)\"/g);
-if(m) m.forEach(x=>output.push(x.replace(/\"/g,'')));
-}
-}
-
-let finalOut='(no output)';
-
-if(output.length>1) finalOut=output[1];
-else if(output.length===1) finalOut=output[0];
-else finalOut='⚠ code may be incomplete or missing statements';
-
-out.innerHTML='<div class="box">'+finalOut+'</div>';
-}
-
+/* ---------------- SAVE ---------------- */
 function saveProject(){
 const name=document.getElementById('projName').value;
 if(!name){alert('Enter name');return;}
@@ -338,6 +302,53 @@ localStorage.setItem('buglens',JSON.stringify(s));
 loadSaved();
 }
 
+/* ---------------- PYODIDE ENGINE ---------------- */
+let pyodideReady=false;
+let pyodide;
+
+async function initPy(){
+pyodide = await loadPyodide();
+pyodideReady=true;
+}
+initPy();
+
+async function runPython(code){
+if(!pyodideReady){
+out.innerHTML="<div class='error'>Python engine loading...</div>";
+return;
+}
+
+try{
+let result = await pyodide.runPythonAsync(code);
+out.innerHTML="<div class='box'>"+result+"</div>";
+}
+catch(err){
+out.innerHTML="<div class='error'>"+err+"</div>";
+}
+}
+
+/* ---------------- RUN ---------------- */
+function runCode(){
+const c=code.value;
+
+if(lang.value==='python'){
+runPython(c);
+return;
+}
+
+/* C SIMPLE (same as before) */
+let output=[];
+if(c.includes('printf')){
+const m=c.match(/\"(.*?)\"/g);
+if(m) m.forEach(x=>output.push(x.replace(/\"/g,'')));
+}
+
+out.innerHTML="<div class='box'>"+
+(output.length?output.join("\n"):"⚠ code may be incomplete")+
+"</div>";
+}
+
+/* INIT */
 updateLines();
 loadSaved();
 
