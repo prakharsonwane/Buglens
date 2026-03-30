@@ -276,23 +276,39 @@ out.innerHTML="<div class='error'>code may be incomplete or wrong</div>";
 }
 
 /* ---------------- C SIMULATION ---------------- */
-function runC(c){
-let output=[];
+function runC(code){
 
-if(c.includes('printf')){
-let m=c.match(/\"(.*?)\"/g);
-if(m){
-m.forEach(x=>output.push(x.replace(/\"/g,'')));
+try{
+
+let output = "";
+
+// remove comments (basic clean)
+let clean = code.replace(/\/\/.*$/gm, "");
+
+// detect printf
+let printMatches = clean.match(/printf\s*\((.*?)\)/g);
+
+if(printMatches){
+
+printMatches.forEach(p=>{
+let content = p.match(/"(.*?)"/);
+if(content && content[1]){
+output += content[1] + "\n";
 }
+});
+
 }
 
-if(output.length){
-out.innerHTML="<div class='box'>"+output.join("\n")+"</div>";
-}else if(c.includes('printf')){
-out.innerHTML="<div class='box'>C code executed (no visible output)</div>";
+if(output.trim() === ""){
+out.innerHTML = "<div class='error'>no output</div>";
 }else{
-out.innerHTML="<div class='error'>No output function found</div>";
+out.innerHTML = "<div class='box'>" + output.trim() + "</div>";
 }
+
+}catch(e){
+out.innerHTML = "<div class='error'>code error</div>";
+}
+
 }
 
 /* ---------------- RUN ---------------- */
