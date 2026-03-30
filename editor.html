@@ -282,22 +282,47 @@ try{
 
 let output = "";
 
-// remove comments (basic clean)
+// remove comments
 let clean = code.replace(/\/\/.*$/gm, "");
 
-// detect printf
-let printMatches = clean.match(/printf\s*\((.*?)\)/g);
+// extract simple int variables
+let vars = {};
+let varMatches = clean.match(/int\s+(\w+)\s*=\s*(\d+)\s*;/g);
 
-if(printMatches){
-
-printMatches.forEach(p=>{
-let content = p.match(/"(.*?)"/);
-if(content && content[1]){
-output += content[1] + "\n";
+if(varMatches){
+varMatches.forEach(v=>{
+let parts = v.match(/int\s+(\w+)\s*=\s*(\d+)/);
+if(parts){
+vars[parts[1]] = parts[2];
 }
 });
+}
+
+// detect printf lines
+let lines = clean.split(";");
+
+lines.forEach(line=>{
+
+if(line.includes("printf")){
+
+// handle %d
+let match = line.match(/printf\s*\("([^"])"(?:\s,\s*(\w+))?\)/);
+
+if(match){
+
+let text = match[1];
+let varName = match[2];
+
+if(text.includes("%d") && varName && vars[varName]){
+text = text.replace("%d", vars[varName]);
+}
+
+output += text + "\n";
+}
 
 }
+
+});
 
 if(output.trim() === ""){
 out.innerHTML = "<div class='error'>no output</div>";
