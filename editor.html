@@ -106,69 +106,137 @@ out.innerHTML="<div class='error'>code error</div>";
 }
 }
 
-async function runC(code){
+//c
 
-out.innerHTML = "<div class='box'>⏳ Running C code...</div>";
+function runC(code){
 
-async function tryAPI(url){
+try{
 
-let response = await fetch(url,{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body: JSON.stringify({
-language:"c",
-version:"*",
-files:[{content:code}]
-})
+let output="";
+let vars={};
+let lines = code.split("\n").map(l=>l.trim()).filter(l=>l);
+
+// helper
+function getVal(x){
+if(vars[x] !== undefined) return vars[x];
+return parseInt(x);
+}
+
+// variables
+lines.forEach(line=>{
+let m=line.match(/int\s+(\w+)\s*=\s*(\d+)/);
+if(m) vars[m[1]] = parseInt(m[2]);
 });
 
-return await response.json();
+// expressions
+lines.forEach(line=>{
+let m=line.match(/int\s+(\w+)\s*=\s*(\w+)\s*([\+\-\*\/])\s*(\w+)/);
+if(m){
+let a=getVal(m[2]);
+let b=getVal(m[4]);
+
+switch(m[3]){
+case "+": vars[m[1]]=a+b; break;
+case "-": vars[m[1]]=a-b; break;
+case "*": vars[m[1]]=a*b; break;
+case "/": vars[m[1]]=Math.floor(a/b); break;
+}
+}
+});
+
+// if condition
+lines.forEach(line=>{
+let m=line.match(/if\s*\((\w+)\s*([<>]=?)\s*(\w+)\)/);
+if(m){
+let a=getVal(m[1]);
+let b=getVal(m[3]);
+let cond=false;
+
+switch(m[2]){
+case "<": cond=a<b; break;
+case ">": cond=a>b; break;
+case "<=": cond=a<=b; break;
+case ">=": cond=a>=b; break;
 }
 
-try{
+if(cond){
+let next = lines[lines.indexOf(line)+1];
+if(next.includes("printf")){
+let text = next.match(/"(.*?)"/)[1];
+text = text.replace("%d", a);
+output += text.replace(/\\n/g,"")+"\n";
+}
+}
+}
+});
 
-let data;
+// for loop
+lines.forEach(line=>{
+let m=line.match(/for\s*\(int\s+(\w+)=(\d+);.*<=\s*(\d+)/);
+if(m){
+let iName=m[1];
+let start=parseInt(m[2]);
+let end=parseInt(m[3]);
 
-// try first server
-try{
-data = await tryAPI("https://piston.rs/api/v2/execute");
-}catch{
-data = await tryAPI("https://emkc.org/api/v2/piston/execute");
+let next = lines[lines.indexOf(line)+1];
+
+for(let i=start;i<=end;i++){
+vars[iName]=i;
+
+if(next.includes("printf")){
+let text = next.match(/"(.*?)"/)[1];
+text = text.replace("%d", i);
+output += text.replace(/\\n/g,"")+"\n";
+}
+}
+}
+});
+
+// printf normal
+lines.forEach(line=>{
+let m=line.match(/printf\s*\(\s*"([^"]*)"(.*)\)/);
+if(m){
+let text=m[1];
+let args=m[2].match(/\w+/g);
+
+if(args){
+args.forEach(v=>{
+if(vars[v]!==undefined){
+text=text.replace("%d", vars[v]);
+}
+});
 }
 
-let result="";
-
-if(data.run){
-result += (data.run.stdout || "");
-result += (data.run.stderr || "");
-result += (data.run.output || "");
+output += text.replace(/\\n/g,"")+"\n";
 }
+});
 
-result = result.trim();
+output=output.trim();
 
-if(result){
-out.innerHTML = "<div class='box'>" + result + "</div>";
-}else{
-out.innerHTML = "<div class='error'>no output</div>";
-}
+out.innerHTML = output
+? "<div class='box'>"+output+"</div>"
+: "<div class='error'>no output</div>";
 
 }catch(e){
-out.innerHTML = "<div class='error'>⚠ Internet blocked / API not reachable</div>";
+out.innerHTML="<div class='error'>code error</div>";
 }
 
 }
+
 /* ---------- RUN ---------- */
 async function runCode(){
 let c=code.value.trim();
+
 if(!c){
 out.innerHTML = "<div class='error'>Code is empty</div>";
 return;
 }
 
-if(lang.value==="python") runPython(c);
-else await runC(c);
+if(lang.value==="python"){
+runPython(c);
+}else{
+runC(c); // ← यहाँ await भी नहीं चाहिए अब
+}
 }
 
 /* ---------- CHECK ---------- */
