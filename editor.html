@@ -111,16 +111,19 @@ function runC(code){
 
 try{
 
-let output="";
-let vars={};
+let output = "";
+let vars = {};
+
+// clean lines
 let lines = code.split("\n").map(l=>l.trim()).filter(l=>l);
 
-// 🔥 IMPORTANT FIX (ADD THIS)
+// remove C structure
 lines = lines.filter(line =>
 !line.startsWith("#include") &&
 !line.includes("main") &&
 line !== "{" &&
-line !== "}"
+line !== "}" &&
+line !== "return 0;"
 );
 
 // helper
@@ -129,92 +132,45 @@ if(vars[x] !== undefined) return vars[x];
 return parseInt(x);
 }
 
-// variables
-lines.forEach(line=>{
-let m=line.match(/int\s+(\w+)\s*=\s*(\d+)/);
-if(m) vars[m[1]] = parseInt(m[2]);
-});
+// run line by line
+for(let i=0;i<lines.length;i++){
 
-// expressions
-lines.forEach(line=>{
-let m=line.match(/int\s+(\w+)\s*=\s*(\w+)\s*([\+\-\\/])\s(\w+)/);
-if(m){
-let a=getVal(m[2]);
-let b=getVal(m[4]);
+let line = lines[i];
 
-switch(m[3]){
-case "+": vars[m[1]]=a+b; break;
-case "-": vars[m[1]]=a-b; break;
-case "*": vars[m[1]]=a*b; break;
-case "/": vars[m[1]]=Math.floor(a/b); break;
-}
-}
-});
-
-// += support
-lines.forEach(line=>{
-let m=line.match(/(\w+)\s*\+=\s*(\w+)/);
-if(m){
-let a = vars[m[1]] || 0;
-let b = getVal(m[2]);
-vars[m[1]] = a + b;
-}
-});
-
-// if condition
-lines.forEach(line=>{
-let m=line.match(/if\s*\((\w+)\s*([<>]=?)\s*(\w+)\)/);
-if(m){
-let a=getVal(m[1]);
-let b=getVal(m[3]);
-let cond=false;
-
-switch(m[2]){
-case "<": cond=a<b; break;
-case ">": cond=a>b; break;
-case "<=": cond=a<=b; break;
-case ">=": cond=a>=b; break;
+// int a = 5;
+let m1 = line.match(/int\s+(\w+)\s*=\s*(\d+)/);
+if(m1){
+vars[m1[1]] = parseInt(m1[2]);
 }
 
-if(cond){
-let next = lines[lines.indexOf(line)+1];
-if(next && next.includes("printf")){
-let text = next.match(/"(.*?)"/)[1];
-text = text.replace("%d", a);
-output += text.replace(/\\n/g,"")+"\n";
+// sum += i;
+let m2 = line.match(/(\w+)\s*\+=\s*(\w+)/);
+if(m2){
+vars[m2[1]] = (vars[m2[1]]||0) + getVal(m2[2]);
 }
-}
-}
-});
 
 // for loop
-lines.forEach(line=>{
-let m=line.match(/for\s*\(int\s+(\w+)=(\d+);.<=\s(\d+)/);
-if(m){
+let m3 = line.match(/for\s*\(int\s+(\w+)=(\d+);.<=\s(\d+)/);
+if(m3){
 
-let iName=m[1];
-let start=parseInt(m[2]);
-let end=parseInt(m[3]);
+let iName = m3[1];
+let start = parseInt(m3[2]);
+let end = parseInt(m3[3]);
 
-let index = lines.indexOf(line);
-let next = lines[index+1];
+for(let j=start;j<=end;j++){
+vars[iName] = j;
 
-for(let i=start;i<=end;i++){
-vars[iName]=i;
+// next line
+let next = lines[i+1];
 
 // += inside loop
-lines.forEach(inner=>{
-let add=inner.match(/(\w+)\s*\+=\s*(\w+)/);
+let add = next.match(/(\w+)\s*\+=\s*(\w+)/);
 if(add){
-let a = vars[add[1]] || 0;
-let b = getVal(add[2]);
-vars[add[1]] = a + b;
+vars[add[1]] = (vars[add[1]]||0) + getVal(add[2]);
 }
-});
 
-// printf with expression
-if(next && next.includes("printf")){
-
+// printf inside loop
+if(next.includes("printf")){
 let text = next.match(/"(.*?)"/)[1];
 let exprMatch = next.match(/,\s*(.*)\)/);
 
@@ -229,46 +185,43 @@ let val = eval(expr);
 text = text.replace("%d", val);
 }
 
-output += text.replace(/\\n/g,"")+"\n";
-}
-
+output += text.replace(/\\n/g,"") + "\n";
 }
 }
-});
+}
 
 // printf normal
-lines.forEach(line=>{
-
-let exprMatch = line.match(/printf\s*\(\s*"([^"])"\s,\s*([^)]+)\)/);
+if(line.includes("printf")){
+let text = line.match(/"(.*?)"/)[1];
+let exprMatch = line.match(/,\s*(.*)\)/);
 
 if(exprMatch){
-let text = exprMatch[1];
-let expr = exprMatch[2];
+let expr = exprMatch[1];
 
 Object.keys(vars).forEach(k=>{
 expr = expr.replaceAll(k, vars[k]);
 });
 
-let value = eval(expr);
+let val = eval(expr);
+text = text.replace("%d", val);
+}
 
-text = text.replace("%d", value);
 output += text.replace(/\\n/g,"") + "\n";
 }
 
-});
+}
 
-output=output.trim();
+output = output.trim();
 
 out.innerHTML = output
-? "<div class='box'>"+output+"</div>"
+? "<div class='box'>" + output + "</div>"
 : "<div class='error'>no output</div>";
 
 }catch(e){
-out.innerHTML="<div class='error'>code error</div>";
+out.innerHTML = "<div class='error'>code error</div>";
 }
 
 }
-
 /* ---------- RUN ---------- */
 async function runCode(){
 let c=code.value.trim();
