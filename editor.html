@@ -202,6 +202,12 @@ Object.keys(vars).forEach(k=>{
 expr = expr.replaceAll(k, vars[k]);
 });
 
+// replace variables properly
+Object.keys(vars).forEach(k=>{
+let reg = new RegExp("\\b"+k+"\\b","g");
+expr = expr.replace(reg, vars[k]);
+});
+
 let val = eval(expr);
 text = text.replace("%d", val);
 }
