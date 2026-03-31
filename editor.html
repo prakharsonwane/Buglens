@@ -106,41 +106,44 @@ out.innerHTML="<div class='error'>code error</div>";
 }
 }
 
-/* ---------- 🔥 NEW REAL C ---------- */
 async function runC(code){
 
 out.innerHTML = "<div class='box'>⏳ Running C code...</div>";
 
-try{
+async function tryAPI(url){
 
-let response = await fetch("https://piston.rs/api/v2/execute",{
-method: "POST",
-headers: {
-"Content-Type": "application/json"
+let response = await fetch(url,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
 },
 body: JSON.stringify({
-language: "c",
-version: "*",
-files: [
-{
-content: code
-}
-]
+language:"c",
+version:"*",
+files:[{content:code}]
 })
 });
 
-let data = await response.json();
-
-let result = "";
-
-// stdout
-if(data.run && data.run.stdout){
-result += data.run.stdout;
+return await response.json();
 }
 
-// stderr
-if(data.run && data.run.stderr){
-result += data.run.stderr;
+try{
+
+let data;
+
+// try first server
+try{
+data = await tryAPI("https://piston.rs/api/v2/execute");
+}catch{
+data = await tryAPI("https://emkc.org/api/v2/piston/execute");
+}
+
+let result="";
+
+if(data.run){
+result += (data.run.stdout || "");
+result += (data.run.stderr || "");
+result += (data.run.output || "");
 }
 
 result = result.trim();
@@ -152,13 +155,10 @@ out.innerHTML = "<div class='error'>no output</div>";
 }
 
 }catch(e){
-out.innerHTML = "<div class='error'>⚠ Execution failed</div>";
+out.innerHTML = "<div class='error'>⚠ Internet blocked / API not reachable</div>";
 }
 
 }
-
-
-
 /* ---------- RUN ---------- */
 async function runCode(){
 let c=code.value.trim();
