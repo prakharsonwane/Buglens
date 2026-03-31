@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BugLens IDE</title>
+<title>BugLens </title>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
 
@@ -154,31 +154,53 @@ runPython(c);
 
 /* ---------- CHECK ---------- */
 function checkCode(){
-let c=code.value;
-let err=[];
+let c = code.value;
+let err = [];
 
-if(!c.trim()) err.push("Empty code");
+if(!c.trim()){
+err.push("Empty code");
+}
 
-if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length){
+if((c.match(/\(/g)||[]).length !== (c.match(/\)/g)||[]).length){
 err.push("Bracket mismatch");
 }
 
+/* ---------- missing colon check ---------- */
 let keywords=["if","for","while","def","elif","else"];
-
-let lines=c.split("\n");
+let lines = c.split("\n");
 
 for(let i=0;i<lines.length;i++){
-let line=lines[i].trim();
+let line = lines[i].trim();
 
 for(let kw of keywords){
 if(line.startsWith(kw) && !line.endsWith(":")){
-err.push("Line "+(i+1)+": missing ':'");
+err.push("Line " + (i+1) + ": missing ':' after " + kw);
 }
 }
 }
 
+/* ---------- 🔥 LOWERCASE DETECTION UPGRADE ---------- */
+let pythonKeywords = ["if","for","while","def","elif","else","print","import","return"];
+
+for(let i=0;i<lines.length;i++){
+let line = lines[i].trim();
+let words = line.split(/\s+/);
+
+for(let w of words){
+let lower = w.toLowerCase();
+
+// keyword used but wrong case (IF, PRINT etc.)
+if(pythonKeywords.includes(lower) && w !== lower){
+err.push(
+"Line " + (i+1) + ": use lowercase '" + lower + "' instead of '" + w + "'"
+);
+}
+}
+}
+
+/* ---------- OUTPUT ---------- */
 out.innerHTML = err.length
-? "<div class='error'>"+err.join("<br>")+"</div>"
+? "<div class='error'>" + err.join("<br>") + "</div>"
 : "<div class='box'>Syntax looks good 🎉</div>";
 }
 
