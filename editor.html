@@ -115,6 +115,14 @@ let output="";
 let vars={};
 let lines = code.split("\n").map(l=>l.trim()).filter(l=>l);
 
+// 🔥 IMPORTANT FIX (ADD THIS)
+lines = lines.filter(line =>
+!line.startsWith("#include") &&
+!line.includes("main") &&
+line !== "{" &&
+line !== "}"
+);
+
 // helper
 function getVal(x){
 if(vars[x] !== undefined) return vars[x];
@@ -143,7 +151,7 @@ case "/": vars[m[1]]=Math.floor(a/b); break;
 }
 });
 
-// += support (NEW)
+// += support
 lines.forEach(line=>{
 let m=line.match(/(\w+)\s*\+=\s*(\w+)/);
 if(m){
@@ -170,7 +178,7 @@ case ">=": cond=a>=b; break;
 
 if(cond){
 let next = lines[lines.indexOf(line)+1];
-if(next.includes("printf")){
+if(next && next.includes("printf")){
 let text = next.match(/"(.*?)"/)[1];
 text = text.replace("%d", a);
 output += text.replace(/\\n/g,"")+"\n";
@@ -179,7 +187,7 @@ output += text.replace(/\\n/g,"")+"\n";
 }
 });
 
-// for loop (UPGRADED)
+// for loop
 lines.forEach(line=>{
 let m=line.match(/for\s*\(int\s+(\w+)=(\d+);.<=\s(\d+)/);
 if(m){
@@ -194,7 +202,7 @@ let next = lines[index+1];
 for(let i=start;i<=end;i++){
 vars[iName]=i;
 
-// 🔥 += inside loop
+// += inside loop
 lines.forEach(inner=>{
 let add=inner.match(/(\w+)\s*\+=\s*(\w+)/);
 if(add){
@@ -204,8 +212,8 @@ vars[add[1]] = a + b;
 }
 });
 
-// 🔥 printf with expression
-if(next.includes("printf")){
+// printf with expression
+if(next && next.includes("printf")){
 
 let text = next.match(/"(.*?)"/)[1];
 let exprMatch = next.match(/,\s*(.*)\)/);
@@ -213,7 +221,6 @@ let exprMatch = next.match(/,\s*(.*)\)/);
 if(exprMatch){
 let expr = exprMatch[1];
 
-// replace variables
 Object.keys(vars).forEach(k=>{
 expr = expr.replaceAll(k, vars[k]);
 });
@@ -229,7 +236,7 @@ output += text.replace(/\\n/g,"")+"\n";
 }
 });
 
-// printf normal (UPGRADED)
+// printf normal
 lines.forEach(line=>{
 
 let exprMatch = line.match(/printf\s*\(\s*"([^"])"\s,\s*([^)]+)\)/);
