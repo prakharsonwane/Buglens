@@ -113,30 +113,34 @@ try{
 let output="";
 let vars={};
 
-// remove comments
+// remove comments + braces
 code = code.replace(/\/\/.*$/gm, "");
+code = code.replace(/[{}]/g, "");
 
 // split lines
 let lines = code.split("\n").map(l=>l.trim()).filter(l=>l);
 
-// helper eval function
+// helper
 function getVal(x){
 if(vars[x] !== undefined) return vars[x];
 return parseInt(x);
 }
 
-// handle int assignment
+// STEP 1: direct values
 lines.forEach(line=>{
 let m = line.match(/int\s+(\w+)\s*=\s*(\d+)\s*;/);
-if(m) vars[m[1]] = parseInt(m[2]);
+if(m){
+vars[m[1]] = parseInt(m[2]);
+}
 });
 
-// handle expressions
+// STEP 2: expressions
 lines.forEach(line=>{
 let m = line.match(/int\s+(\w+)\s*=\s*(\w+)\s*([\+\-\\/])\s(\w+)\s*;/);
 if(m){
 let a=getVal(m[2]);
 let b=getVal(m[4]);
+
 switch(m[3]){
 case "+": vars[m[1]]=a+b; break;
 case "-": vars[m[1]]=a-b; break;
@@ -146,12 +150,12 @@ case "/": vars[m[1]]=Math.floor(a/b); break;
 }
 });
 
-// IF-ELSE
+// STEP 3: IF / ELSE
 let skip=false;
 
 lines.forEach((line,i)=>{
 
-// IF condition
+// IF
 let ifMatch = line.match(/if\s*\((\w+)\s*([<>=!]+)\s*(\w+)\)/);
 
 if(ifMatch){
@@ -180,7 +184,7 @@ skip = !skip;
 return;
 }
 
-// FOR LOOP (basic)
+// FOR LOOP (1-line body)
 let forMatch = line.match(/for\s*\(int\s+(\w+)\s*=\s*(\d+);\s*\1\s*<\s*(\d+);\s*\1\+\+\)/);
 
 if(forMatch){
@@ -189,20 +193,24 @@ let v=forMatch[1];
 let start=parseInt(forMatch[2]);
 let end=parseInt(forMatch[3]);
 
-// next line = loop body
 let body = lines[i+1];
 
 for(let k=start;k<end;k++){
 vars[v]=k;
 
-// run printf inside loop
-let pm = body.match(/printf\s*\(\s*"([^"])"(?:,\s(\w+))?\)/);
+let pm = body.match(/printf\s*\(\s*"([^"])"(.)\)/);
 if(pm){
 let text=pm[1];
-let varName=pm[2];
+let args=pm[2];
 
-if(varName && vars[varName]!==undefined){
-text=text.replace(/%d/g,vars[varName]);
+let varsList = args.match(/\w+/g);
+
+if(varsList){
+varsList.forEach(v=>{
+if(vars[v]!==undefined){
+text=text.replace("%d",vars[v]);
+}
+});
 }
 
 text=text.replace(/\\n/g,"");
@@ -219,6 +227,7 @@ if(line.includes("printf") && !skip){
 let pm = line.match(/printf\s*\(\s*"([^"])"(.)\)/);
 
 if(pm){
+
 let text=pm[1];
 let args=pm[2];
 
@@ -240,7 +249,7 @@ output+=text+"\n";
 
 });
 
-output=output.trim();
+output = output.trim();
 
 out.innerHTML = output
 ? "<div class='box'>"+output+"</div>"
