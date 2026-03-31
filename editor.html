@@ -10,16 +10,19 @@
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:#e2e8f0;}
 .top{padding:10px;background:#111827;display:flex;gap:8px;flex-wrap:wrap;}
-select,input,button{padding:8px;border:none;border-radius:6px;}
+input,button{padding:8px;border:none;border-radius:6px;}
 button{background:#22c55e;color:white;cursor:pointer;}
 button.fix{background:#3b82f6;}
+
 .container{display:flex;height:calc(100vh - 60px);}
 .editor{width:50%;display:flex;background:#0b1220;}
 .lines{width:50px;background:#111827;padding:10px;text-align:right;color:#64748b;}
 textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font-family:monospace;}
+
 .panel{width:50%;padding:10px;border-left:1px solid #1f2937;}
 .box{background:#0b1220;padding:10px;border-radius:8px;margin-top:10px;}
 .error{background:#1e293b;border-left:4px solid red;padding:8px;margin-top:10px;}
+
 .saveBox{margin-top:10px;background:#0b1220;padding:10px;border:1px solid #1f2937;border-radius:8px;}
 .savedItem{display:flex;justify-content:space-between;background:#111827;padding:6px;margin-top:5px;border-radius:6px;}
 </style>
@@ -28,11 +31,6 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 <body>
 
 <div class="top">
-
-<select id="lang">
-<option value="python">Python</option>
-<option value="c">C</option>
-</select>
 
 <button onclick="undo()">Undo</button>
 <button onclick="redo()">Redo</button>
@@ -54,7 +52,7 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 </div>
 
 <div class="panel">
-<div id="out">Write code and run</div>
+<div id="out">Write Python code and run</div>
 
 <div class="saveBox">
 <b>Saved Projects</b>
@@ -67,49 +65,9 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 
 <script>
 
+/* ---------- PYODIDE ---------- */
 let pyodide;
 
-/* ---------- UNDO / REDO ---------- */
-let history = [];
-let redoStack = [];
-
-function saveState(){
-history.push(code.value);
-redoStack = [];
-}
-
-function undo(){
-if(history.length > 1){
-redoStack.push(history.pop());
-code.value = history[history.length - 1] || "";
-updateLines();
-}
-}
-
-function redo(){
-if(redoStack.length > 0){
-let state = redoStack.pop();
-history.push(state);
-code.value = state;
-updateLines();
-}
-}
-
-/* ---------- ELEMENTS ---------- */
-const code=document.getElementById('code');
-const out=document.getElementById('out');
-const savedList=document.getElementById('savedList');
-const lang=document.getElementById('lang');
-
-/* ---------- LINE COUNTER ---------- */
-function updateLines(){
-let count=code.value.split('\n').length;
-let html="";
-for(let i=1;i<=count;i++) html+=i+"<br>";
-document.getElementById('lines').innerHTML=html;
-}
-
-/* ---------- PYODIDE INIT ---------- */
 async function init(){
 pyodide = await loadPyodide({
 indexURL:"https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
@@ -117,7 +75,46 @@ indexURL:"https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
 }
 init();
 
-/* ---------- PYTHON ---------- */
+/* ---------- ELEMENTS ---------- */
+const code=document.getElementById('code');
+const out=document.getElementById('out');
+const savedList=document.getElementById('savedList');
+
+/* ---------- LINE NUMBERS ---------- */
+function updateLines(){
+let count=code.value.split('\n').length;
+let html="";
+for(let i=1;i<=count;i++) html+=i+"<br>";
+document.getElementById('lines').innerHTML=html;
+}
+
+/* ---------- UNDO / REDO ---------- */
+let history=[];
+let redoStack=[];
+
+function saveState(){
+history.push(code.value);
+redoStack=[];
+}
+
+function undo(){
+if(history.length>1){
+redoStack.push(history.pop());
+code.value=history[history.length-1]||"";
+updateLines();
+}
+}
+
+function redo(){
+if(redoStack.length>0){
+let state=redoStack.pop();
+history.push(state);
+code.value=state;
+updateLines();
+}
+}
+
+/* ---------- RUN PYTHON ---------- */
 async function runPython(c){
 try{
 
@@ -143,163 +140,39 @@ out.innerHTML = `
 }
 }
 
-/* ---------- C SIMULATION ---------- */
-function runC(code){
-
-try{
-
-let output = "";
-let vars = {};
-
-let lines = code.split("\n").map(l=>l.trim()).filter(l=>l);
-
-lines = lines.filter(line =>
-!line.startsWith("#include") &&
-!line.includes("main") &&
-line !== "{" &&
-line !== "}" &&
-line !== "return 0;"
-);
-
-function getVal(x){
-if(vars[x] !== undefined) return vars[x];
-return parseInt(x);
-}
-
-lines.forEach(line=>{
-let m=line.match(/int\s+(\w+)\s*=\s*(\d+)/);
-if(m) vars[m[1]] = parseInt(m[2]);
-});
-
-for(let i=0;i<lines.length;i++){
-
-let line = lines[i];
-
-let m=line.match(/for\s*\(int\s+(\w+)=(\d+);.<=\s(\d+)/);
-if(m){
-
-let iName=m[1];
-let start=parseInt(m[2]);
-let end=parseInt(m[3]);
-
-let block = [];
-let j = i+1;
-
-while(j < lines.length && !lines[j].includes("for")){
-block.push(lines[j]);
-j++;
-}
-
-for(let k=start;k<=end;k++){
-vars[iName]=k;
-
-block.forEach(bline=>{
-
-let add=bline.match(/(\w+)\s*\+=\s*(\w+)/);
-if(add){
-vars[add[1]] = (vars[add[1]]||0) + getVal(add[2]);
-}
-
-if(bline.includes("printf")){
-let text=bline.match(/"(.*?)"/)[1];
-let exprMatch=bline.match(/,\s*(.*)\)/);
-
-if(exprMatch){
-let expr=exprMatch[1];
-
-Object.keys(vars).forEach(v=>{
-expr = expr.replace(new RegExp("\\b"+v+"\\b","g"), vars[v]);
-});
-
-let val=eval(expr);
-text=text.replace("%d", val);
-}
-
-output += text.replace(/\\n/g,"")+"\n";
-}
-
-});
-
-}
-
-}
-
-if(line.includes("printf")){
-let text=line.match(/"(.*?)"/)[1];
-let exprMatch=line.match(/,\s*(.*)\)/);
-
-if(exprMatch){
-let expr=exprMatch[1];
-
-Object.keys(vars).forEach(v=>{
-expr = expr.replace(new RegExp("\\b"+v+"\\b","g"), vars[v]);
-});
-
-let val=eval(expr);
-text=text.replace("%d", val);
-}
-
-output += text.replace(/\\n/g,"")+"\n";
-}
-
-}
-
-out.innerHTML = output
-? "<div class='box'>" + output + "</div>"
-: "<div class='error'>no output</div>";
-
-}catch(e){
-out.innerHTML = `
-<div class='error'>
-⚠️ Code may be incomplete or logic is incorrect
-</div>`;
-}
-
-}
-
 /* ---------- RUN ---------- */
-async function runCode(){
+function runCode(){
 let c=code.value.trim();
 
 if(!c){
-out.innerHTML = "<div class='error'>Code is empty</div>";
+out.innerHTML="Code is empty";
 return;
 }
 
-if(lang.value==="python"){
 runPython(c);
-}else{
-runC(c);
-}
 }
 
 /* ---------- CHECK ---------- */
 function checkCode(){
-let c = code.value;
-let lines = c.split("\n");
+let c=code.value;
+let err=[];
 
-let err = [];
+if(!c.trim()) err.push("Empty code");
 
-if(!c.trim()){
-err.push("Empty code");
-}
-
-if((c.match(/\(/g)||[]).length != (c.match(/\)/g)||[]).length){
+if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length){
 err.push("Bracket mismatch");
 }
 
-let blockKeywords = ["if","for","while","def","else","elif"];
+let keywords=["if","for","while","def","elif","else"];
+
+let lines=c.split("\n");
 
 for(let i=0;i<lines.length;i++){
-let line = lines[i].trim();
+let line=lines[i].trim();
 
-if(!line || line.startsWith("#")) continue;
-
-for(let kw of blockKeywords){
-if(lang.value==="python" && line.startsWith(kw)){
-if(!line.endsWith(":")){
-err.push("Line "+(i+1)+": missing ':' after '"+kw+"'");
-}
+for(let kw of keywords){
+if(line.startsWith(kw) && !line.endsWith(":")){
+err.push("Line "+(i+1)+": missing ':'");
 }
 }
 }
@@ -311,8 +184,8 @@ out.innerHTML = err.length
 
 /* ---------- SUGGESTIONS ---------- */
 function showSuggestions(){
-let c = code.value;
-let s = [];
+let c=code.value;
+let s=[];
 
 if(c.includes("for") && !c.includes("print")){
 s.push("Loop detected → add print()");
@@ -322,24 +195,20 @@ if(c.includes("def") && !c.includes("return")){
 s.push("Function may need return statement");
 }
 
-if(lang.value==="python" && !c.includes("print")){
+if(!c.includes("print")){
 s.push("Add print() to display output");
 }
 
-if(lang.value==="c" && !c.includes("printf")){
-s.push("Add printf() for output");
-}
-
-out.innerHTML = "<div class='box'>" + (s.length ? s.join("<br>") : "All good 👍") + "</div>";
+out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"All good 👍")+"</div>";
 }
 
 /* ---------- SAVE ---------- */
 function saveProject(){
 let name=document.getElementById('projName').value.trim();
-if(!name){ alert("Enter name"); return; }
+if(!name){alert("Enter name");return;}
 
 let store=JSON.parse(localStorage.getItem('buglens')||"{}");
-store[name]={code:code.value,lang:lang.value};
+store[name]={code:code.value};
 
 localStorage.setItem('buglens',JSON.stringify(store));
 loadSaved();
@@ -358,11 +227,11 @@ d.innerHTML="<span>"+k+"</span>";
 
 let open=document.createElement("button");
 open.innerText="Open";
-open.onclick=()=>openProject(k);
+open.onclick=()=>{code.value=store[k].code;updateLines();};
 
 let del=document.createElement("button");
 del.innerText="X";
-del.onclick=()=>deleteProject(k);
+del.onclick=()=>{delete store[k];localStorage.setItem('buglens',JSON.stringify(store));loadSaved();};
 
 d.appendChild(open);
 d.appendChild(del);
@@ -370,22 +239,8 @@ savedList.appendChild(d);
 }
 }
 
-function openProject(n){
-let s=JSON.parse(localStorage.getItem('buglens')||"{}");
-code.value=s[n].code;
-lang.value=s[n].lang;
-updateLines();
-}
-
-function deleteProject(n){
-let s=JSON.parse(localStorage.getItem('buglens')||"{}");
-delete s[n];
-localStorage.setItem('buglens',JSON.stringify(s));
 loadSaved();
-}
-
 updateLines();
-loadSaved();
 
 </script>
 
