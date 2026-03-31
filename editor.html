@@ -12,6 +12,7 @@ body{margin:0;font-family:Arial;background:#0f172a;color:#e2e8f0;}
 .top{padding:10px;background:#111827;display:flex;gap:8px;flex-wrap:wrap;}
 select,input,button{padding:8px;border:none;border-radius:6px;}
 button{background:#22c55e;color:white;cursor:pointer;}
+button.fix{background:#3b82f6;}
 .container{display:flex;height:calc(100vh - 60px);}
 .editor{width:50%;display:flex;background:#0b1220;}
 .lines{width:50px;background:#111827;padding:10px;text-align:right;color:#64748b;}
@@ -32,7 +33,9 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 <option value="c">C</option>
 </select>
 
+<button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
+<button class="fix" onclick="showSuggestions()">Suggestions</button>
 
 <input id="projName" placeholder="Project name">
 <button onclick="saveProject()">Save</button>
@@ -102,7 +105,7 @@ out.innerHTML="<div class='error'>code error</div>";
 }
 }
 
-/* ---------- C (FIXED) ---------- */
+/* ---------- C ---------- */
 function runC(code){
 
 try{
@@ -110,22 +113,132 @@ try{
 let output="";
 let vars={};
 
-// variables
-code.replace(/int\s+(\w+)\s*=\s*(\d+)/g,(m,v,val)=>vars[v]=val);
+// remove comments
+code = code.replace(/\/\/.*$/gm, "");
 
-// printf
-let regex=/printf\s*\(\s*"([^"]*)"(?:\s*,\s*(\w+))?\s*\)/g;
-let match;
+// split lines
+let lines = code.split("\n").map(l=>l.trim()).filter(l=>l);
 
-while((match=regex.exec(code))){
-let text=match[1];
-let v=match[2];
+// helper eval function
+function getVal(x){
+if(vars[x] !== undefined) return vars[x];
+return parseInt(x);
+}
 
-if(v && vars[v]) text=text.replace(/%d/g,vars[v]);
+// handle int assignment
+lines.forEach(line=>{
+let m = line.match(/int\s+(\w+)\s*=\s*(\d+)\s*;/);
+if(m) vars[m[1]] = parseInt(m[2]);
+});
+
+// handle expressions
+lines.forEach(line=>{
+let m = line.match(/int\s+(\w+)\s*=\s*(\w+)\s*([\+\-\\/])\s(\w+)\s*;/);
+if(m){
+let a=getVal(m[2]);
+let b=getVal(m[4]);
+switch(m[3]){
+case "+": vars[m[1]]=a+b; break;
+case "-": vars[m[1]]=a-b; break;
+case "*": vars[m[1]]=a*b; break;
+case "/": vars[m[1]]=Math.floor(a/b); break;
+}
+}
+});
+
+// IF-ELSE
+let skip=false;
+
+lines.forEach((line,i)=>{
+
+// IF condition
+let ifMatch = line.match(/if\s*\((\w+)\s*([<>=!]+)\s*(\w+)\)/);
+
+if(ifMatch){
+let a=getVal(ifMatch[1]);
+let b=getVal(ifMatch[3]);
+let op=ifMatch[2];
+
+let cond=false;
+
+switch(op){
+case "==": cond=a==b; break;
+case "!=": cond=a!=b; break;
+case ">": cond=a>b; break;
+case "<": cond=a<b; break;
+case ">=": cond=a>=b; break;
+case "<=": cond=a<=b; break;
+}
+
+skip = !cond;
+return;
+}
+
+// ELSE
+if(line.startsWith("else")){
+skip = !skip;
+return;
+}
+
+// FOR LOOP (basic)
+let forMatch = line.match(/for\s*\(int\s+(\w+)\s*=\s*(\d+);\s*\1\s*<\s*(\d+);\s*\1\+\+\)/);
+
+if(forMatch){
+
+let v=forMatch[1];
+let start=parseInt(forMatch[2]);
+let end=parseInt(forMatch[3]);
+
+// next line = loop body
+let body = lines[i+1];
+
+for(let k=start;k<end;k++){
+vars[v]=k;
+
+// run printf inside loop
+let pm = body.match(/printf\s*\(\s*"([^"])"(?:,\s(\w+))?\)/);
+if(pm){
+let text=pm[1];
+let varName=pm[2];
+
+if(varName && vars[varName]!==undefined){
+text=text.replace(/%d/g,vars[varName]);
+}
 
 text=text.replace(/\\n/g,"");
 output+=text+"\n";
 }
+}
+
+return;
+}
+
+// PRINTF
+if(line.includes("printf") && !skip){
+
+let pm = line.match(/printf\s*\(\s*"([^"])"(.)\)/);
+
+if(pm){
+let text=pm[1];
+let args=pm[2];
+
+let varsList = args.match(/\w+/g);
+
+if(varsList){
+varsList.forEach(v=>{
+if(vars[v]!==undefined){
+text=text.replace("%d",vars[v]);
+}
+});
+}
+
+text=text.replace(/\\n/g,"");
+output+=text+"\n";
+}
+
+}
+
+});
 
 output=output.trim();
 
@@ -148,68 +261,94 @@ if(lang.value==="python") runPython(c);
 else runC(c);
 }
 
-/* ---------- SAVE FIX ---------- */
-function saveProject(){
+/* ---------- CHECK ---------- */
+function checkCode(){
+let c=code.value;
+let err=[];
 
+if(!c.trim()) err.push("Empty code");
+
+if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
+err.push("Bracket mismatch");
+
+if(lang.value==="python"){
+let lines=c.split('\n');
+lines.forEach((l,i)=>{
+if(/^(if|for|while|def)/.test(l) && !l.trim().endsWith(':'))
+err.push("Line "+(i+1)+" missing ':'");
+});
+}
+
+out.innerHTML = err.length
+? "<div class='error'>"+err.join("<br>")+"</div>"
+: "<div class='box'>No issues 🎉</div>";
+}
+
+/* ---------- SUGGESTIONS ---------- */
+function showSuggestions(){
+let c=code.value;
+let s=[];
+
+if(lang.value==="c" && !c.includes("printf"))
+s.push("Add printf()");
+
+if(lang.value==="python" && c.includes("for") && !c.includes("print"))
+s.push("Add print() inside loop");
+
+out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"No suggestions 🎉")+"</div>";
+}
+
+/* ---------- SAVE ---------- */
+function saveProject(){
 let name=document.getElementById('projName').value.trim();
 if(!name){ alert("Enter name"); return; }
 
-let data={
-code:code.value,
-lang:lang.value
-};
-
 let store=JSON.parse(localStorage.getItem('buglens')||"{}");
-store[name]=data;
+store[name]={code:code.value,lang:lang.value};
 
 localStorage.setItem('buglens',JSON.stringify(store));
-
 loadSaved();
 }
 
-/* ---------- LOAD FIX ---------- */
+/* ---------- LOAD ---------- */
 function loadSaved(){
-
 let store=JSON.parse(localStorage.getItem('buglens')||"{}");
-
 savedList.innerHTML="";
 
-for(let key in store){
+for(let k in store){
+let d=document.createElement("div");
+d.className="savedItem";
 
-let div=document.createElement("div");
-div.className="savedItem";
+d.innerHTML="<span>"+k+"</span>";
 
-let openBtn=document.createElement("button");
-openBtn.innerText="Open";
-openBtn.onclick=()=>openProject(key);
+let open=document.createElement("button");
+open.innerText="Open";
+open.onclick=()=>openProject(k);
 
-let delBtn=document.createElement("button");
-delBtn.innerText="X";
-delBtn.onclick=()=>deleteProject(key);
+let del=document.createElement("button");
+del.innerText="X";
+del.onclick=()=>deleteProject(k);
 
-div.innerHTML="<span>"+key+"</span>";
-div.appendChild(openBtn);
-div.appendChild(delBtn);
-
-savedList.appendChild(div);
+d.appendChild(open);
+d.appendChild(del);
+savedList.appendChild(d);
 }
 }
 
-function openProject(name){
-let store=JSON.parse(localStorage.getItem('buglens')||"{}");
-code.value=store[name].code;
-lang.value=store[name].lang;
+function openProject(n){
+let s=JSON.parse(localStorage.getItem('buglens')||"{}");
+code.value=s[n].code;
+lang.value=s[n].lang;
 updateLines();
 }
 
-function deleteProject(name){
-let store=JSON.parse(localStorage.getItem('buglens')||"{}");
-delete store[name];
-localStorage.setItem('buglens',JSON.stringify(store));
+function deleteProject(n){
+let s=JSON.parse(localStorage.getItem('buglens')||"{}");
+delete s[n];
+localStorage.setItem('buglens',JSON.stringify(s));
 loadSaved();
 }
 
-/* INIT */
 updateLines();
 loadSaved();
 
