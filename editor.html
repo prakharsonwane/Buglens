@@ -262,12 +262,21 @@ out.innerHTML="<div class='error'>code error</div>";
 }
 
 /* ---------- RUN ---------- */
-function runCode(){
-let c=code.value.trim();
-if(!c) return;
+async function runCode(){
 
-if(lang.value==="python") runPython(c);
-else runC(c);
+let c = code.value.trim();
+
+if(!c){
+out.innerHTML = "<div class='error'>Code is empty</div>";
+return;
+}
+
+if(lang.value === "python"){
+runPython(c);
+}else{
+await runC(c);
+}
+
 }
 
 /* ---------- CHECK ---------- */
