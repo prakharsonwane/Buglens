@@ -143,6 +143,20 @@ if(m1){
 vars[m1[1]] = parseInt(m1[2]);
 }
 
+// int c = a + b;
+let mExp = line.match(/int\s+(\w+)\s*=\s*(\w+)\s*([\+\-\\/])\s(\w+)/);
+if(mExp){
+let a = getVal(mExp[2]);
+let b = getVal(mExp[4]);
+
+switch(mExp[3]){
+case "+": vars[mExp[1]] = a+b; break;
+case "-": vars[mExp[1]] = a-b; break;
+case "*": vars[mExp[1]] = a*b; break;
+case "/": vars[mExp[1]] = Math.floor(a/b); break;
+}
+}
+
 // sum += i;
 let m2 = line.match(/(\w+)\s*\+=\s*(\w+)/);
 if(m2){
@@ -157,11 +171,10 @@ let iName = m3[1];
 let start = parseInt(m3[2]);
 let end = parseInt(m3[3]);
 
+let next = lines[i+1];
+
 for(let j=start;j<=end;j++){
 vars[iName] = j;
-
-// next line
-let next = lines[i+1];
 
 // += inside loop
 let add = next.match(/(\w+)\s*\+=\s*(\w+)/);
@@ -171,14 +184,16 @@ vars[add[1]] = (vars[add[1]]||0) + getVal(add[2]);
 
 // printf inside loop
 if(next.includes("printf")){
+
 let text = next.match(/"(.*?)"/)[1];
 let exprMatch = next.match(/,\s*(.*)\)/);
 
 if(exprMatch){
 let expr = exprMatch[1];
 
+// replace vars properly
 Object.keys(vars).forEach(k=>{
-expr = expr.replaceAll(k, vars[k]);
+expr = expr.replace(new RegExp("\\b"+k+"\\b","g"), vars[k]);
 });
 
 let val = eval(expr);
@@ -192,6 +207,7 @@ output += text.replace(/\\n/g,"") + "\n";
 
 // printf normal
 if(line.includes("printf")){
+
 let text = line.match(/"(.*?)"/)[1];
 let exprMatch = line.match(/,\s*(.*)\)/);
 
@@ -199,13 +215,7 @@ if(exprMatch){
 let expr = exprMatch[1];
 
 Object.keys(vars).forEach(k=>{
-expr = expr.replaceAll(k, vars[k]);
-});
-
-// replace variables properly
-Object.keys(vars).forEach(k=>{
-let reg = new RegExp("\\b"+k+"\\b","g");
-expr = expr.replace(reg, vars[k]);
+expr = expr.replace(new RegExp("\\b"+k+"\\b","g"), vars[k]);
 });
 
 let val = eval(expr);
