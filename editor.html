@@ -10,8 +10,8 @@
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:#e2e8f0;}
 .top{padding:10px;background:#111827;display:flex;gap:8px;flex-wrap:wrap;}
-select,input,button{padding:8px;border:none;border-radius:6px;}
-button{background:#22c55e;color:white;cursor:pointer;}
+button{padding:8px;border:none;border-radius:6px;cursor:pointer;}
+button{background:#22c55e;color:white;}
 button.fix{background:#3b82f6;}
 .container{display:flex;height:calc(100vh - 60px);}
 .editor{width:50%;display:flex;background:#0b1220;}
@@ -28,11 +28,6 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 <body>
 
 <div class="top">
-<select id="lang">
-<option value="python">Python</option>
-<option value="c">C</option>
-</select>
-
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
 <button class="fix" onclick="showSuggestions()">Suggestions</button>
@@ -59,7 +54,6 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 
 </div>
 
-
 <script>
 
 let pyodide;
@@ -67,7 +61,6 @@ let pyodide;
 const code=document.getElementById('code');
 const out=document.getElementById('out');
 const savedList=document.getElementById('savedList');
-const lang=document.getElementById('lang');
 
 function updateLines(){
 let count=code.value.split('\n').length;
@@ -106,127 +99,6 @@ out.innerHTML="<div class='error'>code error</div>";
 }
 }
 
-//c
-function runC(code){
-
-try{
-
-let output = "";
-let vars = {};
-
-let lines = code.split("\n").map(l=>l.trim()).filter(l=>l);
-
-// remove C structure
-lines = lines.filter(line =>
-!line.startsWith("#include") &&
-!line.includes("main") &&
-line !== "{" &&
-line !== "}" &&
-line !== "return 0;"
-);
-
-function getVal(x){
-if(vars[x] !== undefined) return vars[x];
-return parseInt(x);
-}
-
-// variables
-lines.forEach(line=>{
-let m=line.match(/int\s+(\w+)\s*=\s*(\d+)/);
-if(m) vars[m[1]] = parseInt(m[2]);
-});
-
-// MAIN LOOP LOGIC (FIXED)
-for(let i=0;i<lines.length;i++){
-
-let line = lines[i];
-
-// FOR LOOP
-let m=line.match(/for\s*\(int\s+(\w+)=(\d+);.<=\s(\d+)/);
-if(m){
-
-let iName=m[1];
-let start=parseInt(m[2]);
-let end=parseInt(m[3]);
-
-// 🔥 find loop block
-let block = [];
-let j = i+1;
-
-while(j < lines.length && !lines[j].includes("for")){
-block.push(lines[j]);
-j++;
-}
-
-// run loop
-for(let k=start;k<=end;k++){
-vars[iName]=k;
-
-block.forEach(bline=>{
-
-// +=
-let add=bline.match(/(\w+)\s*\+=\s*(\w+)/);
-if(add){
-vars[add[1]] = (vars[add[1]]||0) + getVal(add[2]);
-}
-
-// printf
-if(bline.includes("printf")){
-let text=bline.match(/"(.*?)"/)[1];
-let exprMatch=bline.match(/,\s*(.*)\)/);
-
-if(exprMatch){
-let expr=exprMatch[1];
-
-Object.keys(vars).forEach(v=>{
-expr = expr.replace(new RegExp("\\b"+v+"\\b","g"), vars[v]);
-});
-
-let val=eval(expr);
-text=text.replace("%d", val);
-}
-
-output += text.replace(/\\n/g,"")+"\n";
-}
-
-});
-
-}
-
-}
-
-// NORMAL PRINTF
-if(line.includes("printf")){
-let text=line.match(/"(.*?)"/)[1];
-let exprMatch=line.match(/,\s*(.*)\)/);
-
-if(exprMatch){
-let expr=exprMatch[1];
-
-Object.keys(vars).forEach(v=>{
-expr = expr.replace(new RegExp("\\b"+v+"\\b","g"), vars[v]);
-});
-
-let val=eval(expr);
-text=text.replace("%d", val);
-}
-
-output += text.replace(/\\n/g,"")+"\n";
-}
-
-}
-
-output = output.trim();
-
-out.innerHTML = output
-? "<div class='box'>" + output + "</div>"
-: "<div class='error'>no output</div>";
-
-}catch(e){
-out.innerHTML="<div class='error'>code error</div>";
-}
-
-}
 /* ---------- RUN ---------- */
 async function runCode(){
 let c=code.value.trim();
@@ -236,11 +108,7 @@ out.innerHTML = "<div class='error'>Code is empty</div>";
 return;
 }
 
-if(lang.value==="python"){
 runPython(c);
-}else{
-runC(c); // ← यहाँ await भी नहीं चाहिए अब
-}
 }
 
 /* ---------- CHECK ---------- */
@@ -253,13 +121,11 @@ if(!c.trim()) err.push("Empty code");
 if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
 err.push("Bracket mismatch");
 
-if(lang.value==="python"){
 let lines=c.split('\n');
 lines.forEach((l,i)=>{
 if(/^(if|for|while|def)/.test(l) && !l.trim().endsWith(':'))
 err.push("Line "+(i+1)+" missing ':'");
 });
-}
 
 out.innerHTML = err.length
 ? "<div class='error'>"+err.join("<br>")+"</div>"
@@ -271,10 +137,7 @@ function showSuggestions(){
 let c=code.value;
 let s=[];
 
-if(lang.value==="c" && !c.includes("printf"))
-s.push("Add printf()");
-
-if(lang.value==="python" && c.includes("for") && !c.includes("print"))
+if(c.includes("for") && !c.includes("print"))
 s.push("Add print() inside loop");
 
 out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"No suggestions 🎉")+"</div>";
@@ -286,7 +149,7 @@ let name=document.getElementById('projName').value.trim();
 if(!name){ alert("Enter name"); return; }
 
 let store=JSON.parse(localStorage.getItem('buglens')||"{}");
-store[name]={code:code.value,lang:lang.value};
+store[name]={code:code.value};
 
 localStorage.setItem('buglens',JSON.stringify(store));
 loadSaved();
@@ -320,7 +183,6 @@ savedList.appendChild(d);
 function openProject(n){
 let s=JSON.parse(localStorage.getItem('buglens')||"{}");
 code.value=s[n].code;
-lang.value=s[n].lang;
 updateLines();
 }
 
