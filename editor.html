@@ -10,8 +10,8 @@
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:#e2e8f0;}
 .top{padding:10px;background:#111827;display:flex;gap:8px;flex-wrap:wrap;}
-button{padding:8px;border:none;border-radius:6px;cursor:pointer;}
-button{background:#22c55e;color:white;}
+select,input,button{padding:8px;border:none;border-radius:6px;}
+button{background:#22c55e;color:white;cursor:pointer;}
 button.fix{background:#3b82f6;}
 .container{display:flex;height:calc(100vh - 60px);}
 .editor{width:50%;display:flex;background:#0b1220;}
@@ -28,19 +28,29 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 <body>
 
 <div class="top">
+
+<select id="lang">
+<option value="python">Python</option>
+<option value="c">C</option>
+</select>
+
+<button onclick="undo()">Undo</button>
+<button onclick="redo()">Redo</button>
+
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
 <button class="fix" onclick="showSuggestions()">Suggestions</button>
 
 <input id="projName" placeholder="Project name">
 <button onclick="saveProject()">Save</button>
+
 </div>
 
 <div class="container">
 
 <div class="editor">
 <div class="lines" id="lines">1</div>
-<textarea id="code" oninput="updateLines()"></textarea>
+<textarea id="code" oninput="updateLines(); saveState()"></textarea>
 </div>
 
 <div class="panel">
@@ -50,6 +60,7 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 <b>Saved Projects</b>
 <div id="savedList"></div>
 </div>
+
 </div>
 
 </div>
@@ -58,10 +69,39 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 
 let pyodide;
 
+/* ---------- UNDO / REDO ---------- */
+let history = [];
+let redoStack = [];
+
+function saveState(){
+history.push(code.value);
+redoStack = [];
+}
+
+function undo(){
+if(history.length > 1){
+redoStack.push(history.pop());
+code.value = history[history.length - 1] || "";
+updateLines();
+}
+}
+
+function redo(){
+if(redoStack.length > 0){
+let state = redoStack.pop();
+history.push(state);
+code.value = state;
+updateLines();
+}
+}
+
+/* ---------- ELEMENTS ---------- */
 const code=document.getElementById('code');
 const out=document.getElementById('out');
 const savedList=document.getElementById('savedList');
+const lang=document.getElementById('lang');
 
+/* ---------- LINE COUNTER ---------- */
 function updateLines(){
 let count=code.value.split('\n').length;
 let html="";
@@ -69,7 +109,7 @@ for(let i=1;i<=count;i++) html+=i+"<br>";
 document.getElementById('lines').innerHTML=html;
 }
 
-/* ---------- PYTHON ---------- */
+/* ---------- PYODIDE INIT ---------- */
 async function init(){
 pyodide = await loadPyodide({
 indexURL:"https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
@@ -77,6 +117,7 @@ indexURL:"https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
 }
 init();
 
+/* ---------- PYTHON ---------- */
 async function runPython(c){
 try{
 
@@ -95,8 +136,125 @@ out.innerHTML = result
 : "<div class='error'>no output</div>";
 
 }catch(e){
-out.innerHTML="<div class='error'>code error</div>";
+out.innerHTML = `
+<div class='error'>
+⚠️ Execution failed: code may be incomplete or incorrect
+</div>`;
 }
+}
+
+/* ---------- C SIMULATION ---------- */
+function runC(code){
+
+try{
+
+let output = "";
+let vars = {};
+
+let lines = code.split("\n").map(l=>l.trim()).filter(l=>l);
+
+lines = lines.filter(line =>
+!line.startsWith("#include") &&
+!line.includes("main") &&
+line !== "{" &&
+line !== "}" &&
+line !== "return 0;"
+);
+
+function getVal(x){
+if(vars[x] !== undefined) return vars[x];
+return parseInt(x);
+}
+
+lines.forEach(line=>{
+let m=line.match(/int\s+(\w+)\s*=\s*(\d+)/);
+if(m) vars[m[1]] = parseInt(m[2]);
+});
+
+for(let i=0;i<lines.length;i++){
+
+let line = lines[i];
+
+let m=line.match(/for\s*\(int\s+(\w+)=(\d+);.<=\s(\d+)/);
+if(m){
+
+let iName=m[1];
+let start=parseInt(m[2]);
+let end=parseInt(m[3]);
+
+let block = [];
+let j = i+1;
+
+while(j < lines.length && !lines[j].includes("for")){
+block.push(lines[j]);
+j++;
+}
+
+for(let k=start;k<=end;k++){
+vars[iName]=k;
+
+block.forEach(bline=>{
+
+let add=bline.match(/(\w+)\s*\+=\s*(\w+)/);
+if(add){
+vars[add[1]] = (vars[add[1]]||0) + getVal(add[2]);
+}
+
+if(bline.includes("printf")){
+let text=bline.match(/"(.*?)"/)[1];
+let exprMatch=bline.match(/,\s*(.*)\)/);
+
+if(exprMatch){
+let expr=exprMatch[1];
+
+Object.keys(vars).forEach(v=>{
+expr = expr.replace(new RegExp("\\b"+v+"\\b","g"), vars[v]);
+});
+
+let val=eval(expr);
+text=text.replace("%d", val);
+}
+
+output += text.replace(/\\n/g,"")+"\n";
+}
+
+});
+
+}
+
+}
+
+if(line.includes("printf")){
+let text=line.match(/"(.*?)"/)[1];
+let exprMatch=line.match(/,\s*(.*)\)/);
+
+if(exprMatch){
+let expr=exprMatch[1];
+
+Object.keys(vars).forEach(v=>{
+expr = expr.replace(new RegExp("\\b"+v+"\\b","g"), vars[v]);
+});
+
+let val=eval(expr);
+text=text.replace("%d", val);
+}
+
+output += text.replace(/\\n/g,"")+"\n";
+}
+
+}
+
+out.innerHTML = output
+? "<div class='box'>" + output + "</div>"
+: "<div class='error'>no output</div>";
+
+}catch(e){
+out.innerHTML = `
+<div class='error'>
+⚠️ Code may be incomplete or logic is incorrect
+</div>`;
+}
+
 }
 
 /* ---------- RUN ---------- */
@@ -108,39 +266,71 @@ out.innerHTML = "<div class='error'>Code is empty</div>";
 return;
 }
 
+if(lang.value==="python"){
 runPython(c);
+}else{
+runC(c);
+}
 }
 
 /* ---------- CHECK ---------- */
 function checkCode(){
-let c=code.value;
-let err=[];
+let c = code.value;
+let lines = c.split("\n");
 
-if(!c.trim()) err.push("Empty code");
+let err = [];
 
-if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
+if(!c.trim()){
+err.push("Empty code");
+}
+
+if((c.match(/\(/g)||[]).length != (c.match(/\)/g)||[]).length){
 err.push("Bracket mismatch");
+}
 
-let lines=c.split('\n');
-lines.forEach((l,i)=>{
-if(/^(if|for|while|def)/.test(l) && !l.trim().endsWith(':'))
-err.push("Line "+(i+1)+" missing ':'");
-});
+let blockKeywords = ["if","for","while","def","else","elif"];
+
+for(let i=0;i<lines.length;i++){
+let line = lines[i].trim();
+
+if(!line || line.startsWith("#")) continue;
+
+for(let kw of blockKeywords){
+if(lang.value==="python" && line.startsWith(kw)){
+if(!line.endsWith(":")){
+err.push("Line "+(i+1)+": missing ':' after '"+kw+"'");
+}
+}
+}
+}
 
 out.innerHTML = err.length
 ? "<div class='error'>"+err.join("<br>")+"</div>"
-: "<div class='box'>No issues 🎉</div>";
+: "<div class='box'>Syntax looks good 🎉</div>";
 }
 
 /* ---------- SUGGESTIONS ---------- */
 function showSuggestions(){
-let c=code.value;
-let s=[];
+let c = code.value;
+let s = [];
 
-if(c.includes("for") && !c.includes("print"))
-s.push("Add print() inside loop");
+if(c.includes("for") && !c.includes("print")){
+s.push("Loop detected → add print()");
+}
 
-out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"No suggestions 🎉")+"</div>";
+if(c.includes("def") && !c.includes("return")){
+s.push("Function may need return statement");
+}
+
+if(lang.value==="python" && !c.includes("print")){
+s.push("Add print() to display output");
+}
+
+if(lang.value==="c" && !c.includes("printf")){
+s.push("Add printf() for output");
+}
+
+out.innerHTML = "<div class='box'>" + (s.length ? s.join("<br>") : "All good 👍") + "</div>";
 }
 
 /* ---------- SAVE ---------- */
@@ -149,7 +339,7 @@ let name=document.getElementById('projName').value.trim();
 if(!name){ alert("Enter name"); return; }
 
 let store=JSON.parse(localStorage.getItem('buglens')||"{}");
-store[name]={code:code.value};
+store[name]={code:code.value,lang:lang.value};
 
 localStorage.setItem('buglens',JSON.stringify(store));
 loadSaved();
@@ -183,6 +373,7 @@ savedList.appendChild(d);
 function openProject(n){
 let s=JSON.parse(localStorage.getItem('buglens')||"{}");
 code.value=s[n].code;
+lang.value=s[n].lang;
 updateLines();
 }
 
