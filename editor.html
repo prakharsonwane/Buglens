@@ -106,21 +106,21 @@ out.innerHTML="<div class='error'>code error</div>";
 }
 }
 
-/* ---------- C ---------- */
+/* ---------- 🔥 NEW REAL C ---------- */
 async function runC(code){
 
 out.innerHTML = "<div class='box'>⏳ Running C code...</div>";
 
 try{
 
-let response = await fetch("https://emkc.org/api/v2/piston/execute",{
+let response = await fetch("https://piston.rs/api/v2/execute",{
 method: "POST",
 headers: {
 "Content-Type": "application/json"
 },
 body: JSON.stringify({
 language: "c",
-version: "10.2.0",
+version: "*",
 files: [
 {
 content: code
@@ -133,10 +133,12 @@ let data = await response.json();
 
 let result = "";
 
-if(data.run && data.run.output){
-result += data.run.output;
+// stdout
+if(data.run && data.run.stdout){
+result += data.run.stdout;
 }
 
+// stderr
 if(data.run && data.run.stderr){
 result += data.run.stderr;
 }
@@ -150,15 +152,20 @@ out.innerHTML = "<div class='error'>no output</div>";
 }
 
 }catch(e){
-out.innerHTML = "<div class='error'>⚠ Execution failed (check internet)</div>";
+out.innerHTML = "<div class='error'>⚠ Execution failed</div>";
 }
 
 }
+
+
 
 /* ---------- RUN ---------- */
 async function runCode(){
 let c=code.value.trim();
-if(!c) return;
+if(!c){
+out.innerHTML = "<div class='error'>Code is empty</div>";
+return;
+}
 
 if(lang.value==="python") runPython(c);
 else await runC(c);
