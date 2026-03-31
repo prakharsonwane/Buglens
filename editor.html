@@ -179,21 +179,29 @@ err.push("Line " + (i+1) + ": missing ':' after " + kw);
 }
 }
 
-/* ---------- 🔥 LOWERCASE DETECTION UPGRADE ---------- */
+/* ---------- 🔥 LOWERCASE DETECTION ---------- */
 let pythonKeywords = ["if","for","while","def","elif","else","print","import","return"];
 
 for(let i=0;i<lines.length;i++){
-let line = lines[i].trim();
-let words = line.split(/\s+/);
+let words = lines[i].split(/\s+/);
 
 for(let w of words){
 let lower = w.toLowerCase();
 
-// keyword used but wrong case (IF, PRINT etc.)
 if(pythonKeywords.includes(lower) && w !== lower){
-err.push(
-"Line " + (i+1) + ": use lowercase '" + lower + "' instead of '" + w + "'"
-);
+err.push("Line " + (i+1) + ": use lowercase '" + lower + "' instead of '" + w + "'");
+}
+}
+}
+
+/* ---------- 🚨 INDENTATION CHECK (NEW ADDITION) ---------- */
+for(let i=1;i<lines.length;i++){
+let line = lines[i];
+let prev = lines[i-1];
+
+if(prev && prev.trim().endsWith(":")){
+if(line.trim() !== "" && !line.startsWith(" ") && !line.startsWith("\t")){
+err.push("Line " + (i+1) + ": possible indentation error");
 }
 }
 }
