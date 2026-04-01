@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>BugLens Pro</title>
+<title>BugLens</title>
 
 <style>
 body{
@@ -23,10 +23,10 @@ top:0;
 left:0;
 }
 
-/* HERO TOP TEXT */
+/* HERO */
 #hero{
 position:absolute;
-top:70px;
+top:60px;
 text-align:center;
 z-index:2;
 }
@@ -63,7 +63,7 @@ transform:translateY(-5px);
 100%{text-shadow:0 0 10px #22c55e;}
 }
 
-/* CARD */
+/* LOGIN CARD */
 .card{
 z-index:2;
 backdrop-filter:blur(25px);
@@ -75,14 +75,23 @@ text-align:center;
 border:1px solid rgba(34,197,94,0.2);
 box-shadow:0 0 40px rgba(34,197,94,0.15);
 
-transform:translateY(60px);
+transform:translateY(110px);
 opacity:0;
 transition:0.6s ease;
 }
 
 .show{
-transform:translateY(0);
+transform:translateY(110px);
 opacity:1;
+}
+
+/* FEATURES */
+#features{
+font-size:13px;
+opacity:0.7;
+margin-bottom:15px;
+color:#94a3b8;
+line-height:1.6;
 }
 
 /* INPUT */
@@ -121,16 +130,7 @@ box-shadow:0 0 20px #22c55e;
 transform:scale(1.03);
 }
 
-/* FEATURES */
-#features{
-font-size:13px;
-opacity:0.7;
-margin-bottom:15px;
-color:#94a3b8;
-line-height:1.6;
-}
-
-/* SUCCESS ANIMATION */
+/* SUCCESS */
 .success{
 animation:zoomOut 0.6s forwards;
 }
@@ -141,6 +141,46 @@ transform:scale(2);
 opacity:0;
 }
 }
+
+/* FLOATING STICKERS */
+.stickers span{
+position:absolute;
+font-size:22px;
+opacity:0.6;
+animation:float 6s infinite ease-in-out;
+}
+
+.stickers span:nth-child(1){top:20%;left:10%;}
+.stickers span:nth-child(2){top:30%;right:15%;animation-delay:1s;}
+.stickers span:nth-child(3){bottom:25%;left:20%;animation-delay:2s;}
+.stickers span:nth-child(4){bottom:15%;right:25%;animation-delay:3s;}
+.stickers span:nth-child(5){top:50%;left:50%;animation-delay:4s;}
+
+@keyframes float{
+0%{transform:translateY(0) rotate(0deg);}
+50%{transform:translateY(-20px) rotate(20deg);}
+100%{transform:translateY(0) rotate(0deg);}
+}
+
+/* GLOW BLOBS */
+.blob{
+position:absolute;
+width:200px;
+height:200px;
+background:#22c55e;
+filter:blur(120px);
+opacity:0.15;
+border-radius:50%;
+animation:moveBlob 10s infinite alternate;
+}
+
+.b1{top:10%;left:10%;}
+.b2{bottom:10%;right:10%;background:#16a34a;}
+
+@keyframes moveBlob{
+0%{transform:translate(0,0);}
+100%{transform:translate(40px,-40px);}
+}
 </style>
 </head>
 
@@ -148,13 +188,25 @@ opacity:0;
 
 <canvas id="bg"></canvas>
 
+<!-- STICKERS + BLOBS -->
+<div class="stickers">
+  <span>🚀</span>
+  <span>⚡</span>
+  <span>💻</span>
+  <span>🧠</span>
+  <span>🔥</span>
+</div>
+
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+
 <!-- HERO -->
 <div id="hero">
   <h1 id="title"></h1>
   <p id="subtitle">Build. Debug. Deploy. Like a Pro 🚀</p>
 </div>
 
-<!-- LOGIN CARD -->
+<!-- LOGIN -->
 <div class="card" id="card">
 
 <div id="features">
@@ -163,19 +215,17 @@ opacity:0;
 🧠 Smart Suggestions
 </div>
 
-<p>Code. Debug. Build.</p>
-
 <input id="user" placeholder="Username">
 <input id="pass" type="password" placeholder="Password">
 
-<button onclick="login()">Start Coding</button>
+<button onclick="login()">LOGIN</button>
 
 </div>
 
 <script>
 
 /* TYPEWRITER */
-let text="Welcome to BugLens Pro";
+let text="Welcome to BugLens";
 let i=0;
 
 function typing(){
