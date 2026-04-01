@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BugLens </title>
+<title>BugLens</title>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
 
@@ -20,14 +20,14 @@ color:#e2e8f0;
 padding:10px;
 background:#111827;
 display:flex;
-gap:8px;
+justify-content:space-between;
+align-items:center;
 flex-wrap:wrap;
 position:sticky;
 top:0;
 z-index:100;
 }
 
-/* ---------- INPUT + BUTTON ---------- */
 input,button{
 padding:8px;
 border:none;
@@ -39,7 +39,7 @@ background:#22c55e;
 color:white;
 cursor:pointer;
 margin:2px;
-box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+box-shadow:0 2px 6px rgba(0,0,0,0.3);
 }
 
 button:hover{
@@ -64,7 +64,6 @@ display:flex;
 background:#0b1220;
 }
 
-/* ---------- LINE NUMBERS ---------- */
 .lines{
 width:50px;
 background:#111827;
@@ -74,7 +73,6 @@ color:#94a3b8;
 font-size:12px;
 }
 
-/* ---------- TEXTAREA ---------- */
 textarea{
 width:100%;
 background:#0b1220;
@@ -82,6 +80,7 @@ color:white;
 border:none;
 padding:10px;
 font-family:monospace;
+caret-color:#22c55e;
 }
 
 textarea:focus{
@@ -89,37 +88,39 @@ outline:none;
 box-shadow:0 0 10px #22c55e;
 }
 
-/* ---------- OUTPUT PANEL ---------- */
+/* ---------- PANEL 50-50 ---------- */
 .panel{
 width:50%;
-padding:10px;
+display:flex;
+flex-direction:column;
 background:#0b1220;
 border-left:2px solid #22c55e;
+transition:0.3s;
 }
 
-/* ---------- OUTPUT BOX ---------- */
-.box{
-background:#0b1220;
+/* ---------- OUTPUT ---------- */
+.outputBox{
+flex:1;
+display:flex;
+flex-direction:column;
+border-bottom:1px solid #1f2937;
 padding:10px;
-border-radius:8px;
-margin-top:10px;
-animation: fadeIn 0.2s ease-in;
 }
 
-.error{
-background:#1e293b;
-border-left:4px solid red;
-padding:8px;
-margin-top:10px;
+#out{
+flex:1;
+overflow:auto;
+font-family:monospace;
+font-size:14px;
 }
 
-/* ---------- SAVE SECTION ---------- */
+/* ---------- SAVE ---------- */
 .saveBox{
-margin-top:10px;
-background:#0b1220;
+flex:1;
+display:flex;
+flex-direction:column;
 padding:10px;
-border:1px solid #1f2937;
-border-radius:8px;
+overflow:auto;
 }
 
 .savedItem{
@@ -131,16 +132,49 @@ margin-top:5px;
 border-radius:6px;
 }
 
+.savedItem:hover{
+background:#1e293b;
+cursor:pointer;
+}
+
+/* ---------- HEADINGS ---------- */
+h3{
+margin:0 0 5px 0;
+font-size:14px;
+color:#22c55e;
+}
+
+/* ---------- OUTPUT BOX ---------- */
+.box{
+background:#020617;
+padding:10px;
+border-radius:8px;
+margin-top:10px;
+animation:fadeIn 0.2s;
+}
+
+.error{
+background:#1e293b;
+border-left:4px solid red;
+padding:8px;
+margin-top:10px;
+}
+
+/* ---------- STATUS ---------- */
+.status{
+position:fixed;
+bottom:0;
+width:100%;
+background:#111827;
+padding:5px;
+font-size:12px;
+color:#94a3b8;
+}
+
 /* ---------- ANIMATION ---------- */
 @keyframes fadeIn{
-from{
-opacity:0;
-transform:translateY(5px);
-}
-to{
-opacity:1;
-transform:translateY(0);
-}
+from{opacity:0;transform:translateY(5px);}
+to{opacity:1;transform:translateY(0);}
 }
 </style>
 </head>
@@ -149,15 +183,19 @@ transform:translateY(0);
 
 <div class="top">
 
+<div>
 <button onclick="undo()">Undo</button>
 <button onclick="redo()">Redo</button>
-
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
 <button class="fix" onclick="showSuggestions()">Suggestions</button>
+</div>
+
+<div>
 <button onclick="clearAll()">Clear</button>
 <input id="projName" placeholder="Project name">
 <button onclick="saveProject()">Save</button>
+</div>
 
 </div>
 
@@ -169,10 +207,14 @@ transform:translateY(0);
 </div>
 
 <div class="panel">
-<div id="out">Write Python code and run</div>
+
+<div class="outputBox">
+<h3>Output</h3>
+<div id="out">Write code and run</div>
+</div>
 
 <div class="saveBox">
-<b>Saved Projects</b>
+<h3>Saved Projects</h3>
 <div id="savedList"></div>
 </div>
 
@@ -180,9 +222,10 @@ transform:translateY(0);
 
 </div>
 
+<div class="status" id="status">Ready</div>
+
 <script>
 
-/* ---------- PYODIDE ---------- */
 let pyodide;
 
 async function init(){
@@ -192,12 +235,16 @@ indexURL:"https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
 }
 init();
 
-/* ---------- ELEMENTS ---------- */
 const code=document.getElementById('code');
 const out=document.getElementById('out');
 const savedList=document.getElementById('savedList');
 
-/* ---------- LINE NUMBERS ---------- */
+/* ---------- STATUS ---------- */
+function setStatus(msg){
+document.getElementById("status").innerText = msg;
+}
+
+/* ---------- LINES ---------- */
 function updateLines(){
 let count=code.value.split('\n').length;
 let html="";
@@ -205,7 +252,7 @@ for(let i=1;i<=count;i++) html+=i+"<br>";
 document.getElementById('lines').innerHTML=html;
 }
 
-/* ---------- UNDO / REDO ---------- */
+/* ---------- UNDO REDO ---------- */
 let history=[];
 let redoStack=[];
 
@@ -231,9 +278,12 @@ updateLines();
 }
 }
 
-/* ---------- RUN PYTHON ---------- */
+/* ---------- RUN ---------- */
 async function runPython(c){
 try{
+
+out.innerHTML="<div class='box'>⏳ Running...</div>";
+setStatus("Running...");
 
 pyodide.runPython(`
 import sys
@@ -249,102 +299,84 @@ out.innerHTML = result
 ? "<div class='box'>"+result+"</div>"
 : "<div class='error'>no output</div>";
 
+setStatus("Completed");
+out.scrollTop = out.scrollHeight;
+
 }catch(e){
-out.innerHTML = `
-<div class='error'>
-⚠️ Execution failed: code may be incomplete or incorrect
-</div>`;
+out.innerHTML="<div class='error'>⚠️ Execution failed</div>";
+setStatus("Error");
 }
 }
 
-/* ---------- RUN ---------- */
 function runCode(){
 let c=code.value.trim();
-
 if(!c){
 out.innerHTML="Code is empty";
 return;
 }
-
 runPython(c);
 }
 
 /* ---------- CHECK ---------- */
 function checkCode(){
-let c = code.value;
-let err = [];
+let c=code.value;
+let err=[];
 
-if(!c.trim()){
-err.push("Empty code");
-}
+if(!c.trim()) err.push("Empty code");
 
-if((c.match(/\(/g)||[]).length !== (c.match(/\)/g)||[]).length){
+if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
 err.push("Bracket mismatch");
-}
 
-/* ---------- missing colon check ---------- */
 let keywords=["if","for","while","def","elif","else"];
-let lines = c.split("\n");
+let lines=c.split("\n");
 
 for(let i=0;i<lines.length;i++){
-let line = lines[i].trim();
+let line=lines[i].trim();
 
 for(let kw of keywords){
 if(line.startsWith(kw) && !line.endsWith(":")){
-err.push("Line " + (i+1) + ": missing ':' after " + kw);
+err.push("Line "+(i+1)+": missing ':'");
 }
 }
 }
 
-/* ---------- 🔥 LOWERCASE DETECTION ---------- */
-let pythonKeywords = ["if","for","while","def","elif","else","print","import","return"];
+/* lowercase */
+let pythonKeywords=["if","for","while","def","elif","else","print","import","return"];
 
 for(let i=0;i<lines.length;i++){
-let words = lines[i].split(/\s+/);
-
+let words=lines[i].split(/\s+/);
 for(let w of words){
-let lower = w.toLowerCase();
-
-if(pythonKeywords.includes(lower) && w !== lower){
-err.push("Line " + (i+1) + ": use lowercase '" + lower + "' instead of '" + w + "'");
+let lower=w.toLowerCase();
+if(pythonKeywords.includes(lower) && w!==lower){
+err.push("Line "+(i+1)+": use '"+lower+"'");
 }
 }
 }
 
-/* ---------- 🚨 INDENTATION CHECK (NEW ADDITION) ---------- */
+/* indentation */
 for(let i=1;i<lines.length;i++){
-let line = lines[i];
-let prev = lines[i-1];
-
+let prev=lines[i-1];
+let line=lines[i];
 if(prev && prev.trim().endsWith(":")){
-if(line.trim() !== "" && !line.startsWith(" ") && !line.startsWith("\t")){
-err.push("Line " + (i+1) + ": possible indentation error");
+if(line.trim()!=="" && !line.startsWith(" ") && !line.startsWith("\t")){
+err.push("Line "+(i+1)+": indentation error");
 }
 }
 }
 
-/* ---------- OUTPUT ---------- */
 out.innerHTML = err.length
-? "<div class='error'>" + err.join("<br>") + "</div>"
+? "<div class='error'>"+err.join("<br>")+"</div>"
 : "<div class='box'>Syntax looks good 🎉</div>";
 }
 
-/* ---------- SUGGESTIONS ---------- */
+/* ---------- SUGGEST ---------- */
 function showSuggestions(){
 let c=code.value;
 let s=[];
 
-if(c.includes("for") && !c.includes("print")){
-s.push("Loop detected → add print()");
-}
-
-if(c.includes("def") && !c.includes("return")){
-s.push("Function may need return statement");
-}
-
-if(!c.includes("print")){
-s.push("Add print() to display output");
-}
+if(c.includes("for") && !c.includes("print")) s.push("Add print() in loop");
+if(c.includes("def") && !c.includes("return")) s.push("Function may need return");
+if(!c.includes("print")) s.push("Add print()");
 
 out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"All good 👍")+"</div>";
 }
@@ -361,7 +393,6 @@ localStorage.setItem('buglens',JSON.stringify(store));
 loadSaved();
 }
 
-/* ---------- LOAD ---------- */
 function loadSaved(){
 let store=JSON.parse(localStorage.getItem('buglens')||"{}");
 savedList.innerHTML="";
@@ -386,13 +417,17 @@ savedList.appendChild(d);
 }
 }
 
+/* ---------- CLEAR ---------- */
+function clearAll(){
+code.value="";
+out.innerHTML="<div class='box'>Write code and run</div>";
+updateLines();
+setStatus("Cleared");
+}
+
 loadSaved();
 updateLines();
-function clearAll(){
-code.value = "";
-out.innerHTML = "<div class='box'>Write code and run</div>";
-updateLines();
-}
+
 </script>
 
 </body>
