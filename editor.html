@@ -150,12 +150,13 @@ background:#020617;
 padding:10px;
 border-radius:8px;
 margin-top:10px;
-animation:fadeIn 0.2s;
+animation: fadeIn 0.2s;
+border-left:4px solid #22c55e; /* green */
 }
 
 .error{
 background:#1e293b;
-border-left:4px solid red;
+border-left:4px solid #ef4444;
 padding:8px;
 margin-top:10px;
 }
@@ -184,8 +185,8 @@ to{opacity:1;transform:translateY(0);}
 <div class="top">
 
 <div>
-<button onclick="undo()">Undo</button>
-<button onclick="redo()">Redo</button>
+<button onclick="undo()" title="Undo">&#8630;</button>
+<button onclick="redo()" title="Redo">&#8631;</button>
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
 <button class="fix" onclick="showSuggestions()">Suggestions</button>
@@ -303,7 +304,7 @@ setStatus("Completed");
 out.scrollTop = out.scrollHeight;
 
 }catch(e){
-out.innerHTML="<div class='error'>⚠️ Execution failed</div>";
+out.innerHTML="<div class='error'>⚠️ Code may be incomplete or incorrect </div>";
 setStatus("Error");
 }
 }
