@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>BugLens</title>
-
+<title>BugLens Pro</title>
+<div id="features">
+⚡ Fast Python Runner <br>
+💾 Save Projects <br>
+🧠 Smart Suggestions
+</div>
 <style>
 body{
 margin:0;
 height:100vh;
 font-family:Arial;
 display:flex;
+flex-direction:column;
 justify-content:center;
 align-items:center;
 background:#020617;
@@ -23,39 +28,42 @@ top:0;
 left:0;
 }
 
+/* 🔥 TITLE */
+#title{
+font-size:28px;
+color:#22c55e;
+margin-bottom:30px;
+text-shadow:0 0 10px #22c55e;
+z-index:1;
+}
+
 /* 🔥 CARD */
 .card{
-position:relative;
 z-index:1;
 backdrop-filter:blur(20px);
 background:rgba(255,255,255,0.05);
-padding:40px;
+padding:30px;
 border-radius:20px;
-width:320px;
+width:300px;
 text-align:center;
 border:1px solid rgba(255,255,255,0.1);
 box-shadow:0 0 30px rgba(0,0,0,0.5);
 
-/* SLIDE */
-animation: slideIn 1s ease forwards;
-transform: translateX(200px);
+/* SLIDE INIT (hidden) */
+transform:translateX(200px);
 opacity:0;
+}
+
+/* SHOW CLASS */
+.show{
+animation:slideIn 0.8s ease forwards;
 }
 
 @keyframes slideIn{
 to{
-transform: translateX(0);
+transform:translateX(0);
 opacity:1;
 }
-}
-
-/* 🔥 TITLE */
-h1{
-font-size:24px;
-color:#22c55e;
-margin-bottom:10px;
-letter-spacing:1px;
-text-shadow:0 0 10px #22c55e;
 }
 
 /* INPUT */
@@ -86,42 +94,37 @@ background:#22c55e;
 color:black;
 font-weight:bold;
 cursor:pointer;
-position:relative;
-overflow:hidden;
 }
 
 button:hover{
 box-shadow:0 0 20px #22c55e;
 }
 
-/* RIPPLE */
-button::after{
-content:"";
-position:absolute;
-width:0;
-height:0;
-background:rgba(255,255,255,0.5);
-border-radius:50%;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-transition:0.4s;
-}
-
-button:active::after{
-width:200px;
-height:200px;
-}
-
-/* LOGIN SUCCESS */
+/* SUCCESS */
 .success{
-animation: zoomOut 0.6s forwards;
+animation:zoomOut 0.6s forwards;
 }
 
 @keyframes zoomOut{
 to{
 transform:scale(2);
 opacity:0;
+}
+}
+#features{
+font-size:13px;
+opacity:0.8;
+margin-bottom:20px;
+text-align:center;
+line-height:1.6;
+color:#94a3b8;
+animation:fadeIn 1s ease forwards;
+opacity:0;
+}
+
+@keyframes fadeIn{
+to{
+opacity:0.8;
 }
 }
 </style>
@@ -131,8 +134,9 @@ opacity:0;
 
 <canvas id="bg"></canvas>
 
-<div class="card" id="card">
 <h1 id="title"></h1>
+
+<div class="card" id="card">
 <p>Code. Debug. Build.</p>
 
 <input id="user" placeholder="Username">
@@ -143,16 +147,21 @@ opacity:0;
 
 <script>
 
-/* 🔥 TYPING EFFECT */
+/* 🔥 TYPING + THEN SHOW LOGIN */
 let text="🚀 Welcome to BugLens";
 let i=0;
+
 function typing(){
 if(i<text.length){
 document.getElementById("title").innerHTML+=text.charAt(i);
 i++;
 setTimeout(typing,50);
+}else{
+/* AFTER typing → show card */
+document.getElementById("card").classList.add("show");
 }
 }
+
 typing();
 
 /* 🔥 PARTICLES */
