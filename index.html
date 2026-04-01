@@ -2,18 +2,13 @@
 <html>
 <head>
 <title>BugLens Pro</title>
-<div id="features">
-⚡ Fast Python Runner <br>
-💾 Save Projects <br>
-🧠 Smart Suggestions
-</div>
+
 <style>
 body{
 margin:0;
 height:100vh;
 font-family:Arial;
 display:flex;
-flex-direction:column;
 justify-content:center;
 align-items:center;
 background:#020617;
@@ -21,49 +16,73 @@ overflow:hidden;
 color:white;
 }
 
-/* 🔥 PARTICLES */
+/* CANVAS */
 canvas{
 position:absolute;
 top:0;
 left:0;
 }
 
-/* 🔥 TITLE */
-#title{
-font-size:28px;
-color:#22c55e;
-margin-bottom:30px;
-text-shadow:0 0 10px #22c55e;
-z-index:1;
-}
-
-/* 🔥 CARD */
-.card{
-z-index:1;
-backdrop-filter:blur(20px);
-background:rgba(255,255,255,0.05);
-padding:30px;
-border-radius:20px;
-width:300px;
+/* HERO TOP TEXT */
+#hero{
+position:absolute;
+top:70px;
 text-align:center;
-border:1px solid rgba(255,255,255,0.1);
-box-shadow:0 0 30px rgba(0,0,0,0.5);
+z-index:2;
+}
 
-/* SLIDE INIT (hidden) */
-transform:translateX(200px);
+#title{
+font-size:52px;
+font-weight:bold;
+letter-spacing:2px;
+color:#22c55e;
+margin:0;
+animation:glowPulse 3s infinite;
+text-shadow:0 0 20px #22c55e;
+}
+
+#subtitle{
+margin-top:10px;
+font-size:16px;
+color:#94a3b8;
 opacity:0;
+animation:fadeUp 1s ease forwards;
+animation-delay:2s;
 }
 
-/* SHOW CLASS */
-.show{
-animation:slideIn 0.8s ease forwards;
-}
-
-@keyframes slideIn{
+@keyframes fadeUp{
 to{
-transform:translateX(0);
 opacity:1;
+transform:translateY(-5px);
 }
+}
+
+@keyframes glowPulse{
+0%{text-shadow:0 0 10px #22c55e;}
+50%{text-shadow:0 0 30px #22c55e, 0 0 60px #16a34a;}
+100%{text-shadow:0 0 10px #22c55e;}
+}
+
+/* CARD */
+.card{
+z-index:2;
+backdrop-filter:blur(25px);
+background:rgba(255,255,255,0.06);
+padding:35px;
+border-radius:24px;
+width:320px;
+text-align:center;
+border:1px solid rgba(34,197,94,0.2);
+box-shadow:0 0 40px rgba(34,197,94,0.15);
+
+transform:translateY(60px);
+opacity:0;
+transition:0.6s ease;
+}
+
+.show{
+transform:translateY(0);
+opacity:1;
 }
 
 /* INPUT */
@@ -94,13 +113,24 @@ background:#22c55e;
 color:black;
 font-weight:bold;
 cursor:pointer;
+transition:0.3s;
 }
 
 button:hover{
 box-shadow:0 0 20px #22c55e;
+transform:scale(1.03);
 }
 
-/* SUCCESS */
+/* FEATURES */
+#features{
+font-size:13px;
+opacity:0.7;
+margin-bottom:15px;
+color:#94a3b8;
+line-height:1.6;
+}
+
+/* SUCCESS ANIMATION */
 .success{
 animation:zoomOut 0.6s forwards;
 }
@@ -111,22 +141,6 @@ transform:scale(2);
 opacity:0;
 }
 }
-#features{
-font-size:13px;
-opacity:0.8;
-margin-bottom:20px;
-text-align:center;
-line-height:1.6;
-color:#94a3b8;
-animation:fadeIn 1s ease forwards;
-opacity:0;
-}
-
-@keyframes fadeIn{
-to{
-opacity:0.8;
-}
-}
 </style>
 </head>
 
@@ -134,37 +148,48 @@ opacity:0.8;
 
 <canvas id="bg"></canvas>
 
-<h1 id="title"></h1>
+<!-- HERO -->
+<div id="hero">
+  <h1 id="title"></h1>
+  <p id="subtitle">Build. Debug. Deploy. Like a Pro 🚀</p>
+</div>
 
+<!-- LOGIN CARD -->
 <div class="card" id="card">
+
+<div id="features">
+⚡ Fast Python Runner <br>
+💾 Save Projects <br>
+🧠 Smart Suggestions
+</div>
+
 <p>Code. Debug. Build.</p>
 
 <input id="user" placeholder="Username">
 <input id="pass" type="password" placeholder="Password">
 
 <button onclick="login()">Start Coding</button>
+
 </div>
 
 <script>
 
-/* 🔥 TYPING + THEN SHOW LOGIN */
-let text="🚀 Welcome to BugLens";
+/* TYPEWRITER */
+let text="Welcome to BugLens Pro";
 let i=0;
 
 function typing(){
 if(i<text.length){
 document.getElementById("title").innerHTML+=text.charAt(i);
 i++;
-setTimeout(typing,50);
+setTimeout(typing,60);
 }else{
-/* AFTER typing → show card */
 document.getElementById("card").classList.add("show");
 }
 }
-
 typing();
 
-/* 🔥 PARTICLES */
+/* PARTICLES */
 let canvas=document.getElementById("bg");
 let ctx=canvas.getContext("2d");
 
@@ -172,7 +197,8 @@ canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
 
 let particles=[];
-for(let i=0;i<60;i++){
+
+for(let i=0;i<90;i++){
 particles.push({
 x:Math.random()*canvas.width,
 y:Math.random()*canvas.height,
@@ -188,7 +214,7 @@ ctx.clearRect(0,0,canvas.width,canvas.height);
 particles.forEach(p=>{
 ctx.beginPath();
 ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-ctx.fillStyle="#22c55e";
+ctx.fillStyle="rgba(34,197,94,0.8)";
 ctx.fill();
 
 p.x+=p.dx;
@@ -202,7 +228,7 @@ requestAnimationFrame(draw);
 }
 draw();
 
-/* 🔥 LOGIN */
+/* LOGIN */
 function login(){
 let u=document.getElementById("user").value;
 let p=document.getElementById("pass").value;
