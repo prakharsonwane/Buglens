@@ -38,7 +38,7 @@ textarea{width:100%;background:#0b1220;color:white;border:none;padding:10px;font
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
 <button class="fix" onclick="showSuggestions()">Suggestions</button>
-<button onclick="clearOutput()">Clear</button>
+<button onclick="clearALL()">Reset</button>
 <input id="projName" placeholder="Project name">
 <button onclick="saveProject()">Save</button>
 
@@ -271,8 +271,10 @@ savedList.appendChild(d);
 
 loadSaved();
 updateLines();
-function clearOutput(){
+function clearAll(){
+code.value = "";
 out.innerHTML = "<div class='box'>Write code and run</div>";
+updateLines();
 }
 </script>
 
