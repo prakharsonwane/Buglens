@@ -12,56 +12,66 @@ display:flex;
 flex-direction:column;
 align-items:center;
 justify-content:flex-start;
-background: radial-gradient(circle at bottom, #020617, #000);
+background:#020617;
 overflow:hidden;
 color:white;
 }
 
-/* STARS */
-body::before{
-content:"";
+/* CANVAS */
+canvas{
 position:absolute;
-width:100%;
-height:100%;
-background:url('https://www.transparenttextures.com/patterns/stardust.png');
-opacity:0.4;
+top:0;
+left:0;
 }
 
 /* HERO */
 #hero{
-margin-top:60px;
+margin-top:70px;
+text-align:center;
+z-index:2;
 display:flex;
 flex-direction:column;
 align-items:center;
-text-align:center;
-z-index:2;
 }
 
 #title{
-font-size:52px;
+font-size:64px;
+font-weight:bold;
+letter-spacing:3px;
 color:#22c55e;
 margin-bottom:10px;
+text-shadow:0 0 20px #22c55e;
+animation:glowPulse 3s infinite;
 }
 
 #tagline{
-font-size:14px;
+font-size:15px;
 color:#94a3b8;
 margin-bottom:40px;
+}
+
+@keyframes glowPulse{
+0%{text-shadow:0 0 10px #22c55e;}
+50%{text-shadow:0 0 30px #22c55e,0 0 60px #16a34a;}
+100%{text-shadow:0 0 10px #22c55e;}
 }
 
 /* CARD */
 .card{
 z-index:2;
 backdrop-filter:blur(25px);
-background:rgba(255,255,255,0.05);
+background:rgba(255,255,255,0.06);
 padding:35px;
 border-radius:24px;
 width:320px;
 text-align:center;
-
-/* NEON */
 border:1px solid #22c55e;
-box-shadow:0 0 20px #22c55e, 0 0 40px rgba(34,197,94,0.5);
+box-shadow:0 0 40px rgba(34,197,94,0.4);
+transition:0.3s;
+}
+
+.card:hover{
+transform:scale(1.03);
 }
 
 /* INPUT */
@@ -71,7 +81,7 @@ padding:12px;
 margin:10px 0;
 border:none;
 border-radius:8px;
-background:rgba(255,255,255,0.05);
+background:#020617;
 color:white;
 }
 
@@ -122,10 +132,63 @@ font-size:13px;
 margin-top:10px;
 min-height:18px;
 }
+
+/* PARTICLES BG */
+.blob{
+position:absolute;
+width:200px;
+height:200px;
+background:#22c55e;
+filter:blur(120px);
+opacity:0.15;
+border-radius:50%;
+animation:moveBlob 10s infinite alternate;
+}
+
+.b1{top:10%;left:10%;}
+.b2{bottom:10%;right:10%;background:#16a34a;}
+
+@keyframes moveBlob{
+0%{transform:translate(0,0);}
+100%{transform:translate(40px,-40px);}
+}
+
+/* FLOAT ICONS */
+.stickers span{
+position:absolute;
+font-size:22px;
+opacity:0.6;
+animation:float 6s infinite ease-in-out;
+}
+
+.stickers span:nth-child(1){top:20%;left:10%;}
+.stickers span:nth-child(2){top:30%;right:15%;animation-delay:1s;}
+.stickers span:nth-child(3){bottom:25%;left:20%;animation-delay:2s;}
+.stickers span:nth-child(4){bottom:15%;right:25%;animation-delay:3s;}
+.stickers span:nth-child(5){top:50%;left:50%;animation-delay:4s;}
+
+@keyframes float{
+0%{transform:translateY(0);}
+50%{transform:translateY(-20px);}
+100%{transform:translateY(0);}
+}
 </style>
 </head>
 
 <body>
+
+<canvas id="bg"></canvas>
+
+<div class="stickers">
+<span>🚀</span>
+<span>⚡</span>
+<span>💻</span>
+<span>🧠</span>
+<span>🔥</span>
+</div>
+
+<div class="blob b1"></div>
+<div class="blob b2"></div>
 
 <div id="hero">
 <h1 id="title">🐞 BugLens</h1>
@@ -154,6 +217,41 @@ min-height:18px;
 
 <script>
 
+/* PARTICLES */
+let canvas=document.getElementById("bg");
+let ctx=canvas.getContext("2d");
+
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+let particles=[];
+for(let i=0;i<80;i++){
+particles.push({
+x:Math.random()*canvas.width,
+y:Math.random()*canvas.height,
+r:Math.random()*2,
+dx:(Math.random()-0.5),
+dy:(Math.random()-0.5)
+});
+}
+
+function draw(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+particles.forEach(p=>{
+ctx.beginPath();
+ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+ctx.fillStyle="rgba(34,197,94,0.8)";
+ctx.fill();
+p.x+=p.dx;
+p.y+=p.dy;
+if(p.x<0||p.x>canvas.width) p.dx*=-1;
+if(p.y<0||p.y>canvas.height) p.dy*=-1;
+});
+requestAnimationFrame(draw);
+}
+draw();
+
+/* LOGIN SYSTEM */
 window.onload=function(){
 if(localStorage.getItem("username")){
 showLogin();
@@ -182,14 +280,10 @@ showLogin();
 function login(){
 if(user.value===localStorage.getItem("username") &&
 pass.value===localStorage.getItem("password")){
-
 showMsg("Login success","#22c55e");
-
-/* REDIRECT */
 setTimeout(()=>{
 window.location.href="editor.html";
 },800);
-
 }else{
 showMsg("Wrong credentials","#f87171");
 }
