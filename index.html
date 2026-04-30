@@ -32,59 +32,6 @@ animation:twinkle 4s infinite alternate;
 100%{opacity:0.6;}
 }
 
-/* 🌠 SHOOTING STAR */
-.shooting{
-position:absolute;
-width:2px;
-height:80px;
-background:linear-gradient(white, transparent);
-animation:shoot 4s linear infinite;
-opacity:0.7;
-}
-
-@keyframes shoot{
-0%{
-top:-10%;
-left:80%;
-transform:rotate(45deg);
-opacity:1;
-}
-100%{
-top:120%;
-left:20%;
-opacity:0;
-}
-}
-
-/* 🪐 PLANETS */
-.planet{
-position:absolute;
-border-radius:50%;
-opacity:0.4;
-animation:float 10s infinite alternate;
-}
-
-.p1{
-width:80px;
-height:80px;
-background:#22c55e;
-top:20%;
-left:10%;
-}
-
-.p2{
-width:60px;
-height:60px;
-background:#16a34a;
-bottom:20%;
-right:10%;
-}
-
-@keyframes float{
-0%{transform:translateY(0);}
-100%{transform:translateY(-30px);}
-}
-
 /* 🚀 ROCKETS */
 .rockets span{
 position:absolute;
@@ -102,6 +49,20 @@ opacity:0.7;
 100%{bottom:110%;}
 }
 
+/* 🌠 SHOOTING STAR */
+.shooting{
+position:absolute;
+width:2px;
+height:80px;
+background:linear-gradient(white, transparent);
+animation:shoot 5s linear infinite;
+}
+
+@keyframes shoot{
+0%{top:-10%; left:80%; transform:rotate(45deg);}
+100%{top:120%; left:20%;}
+}
+
 /* TITLE */
 #hero{
 position:absolute;
@@ -116,15 +77,14 @@ font-size:52px;
 color:#22c55e;
 }
 
-/* TAGLINE */
+/* TAGLINE (FIXED POSITION) */
 #tagline{
-margin-top:100px;
+position:absolute;
+top:110px;   /* 👈 BugLens के नीचे */
+width:100%;
 text-align:center;
 font-size:14px;
 color:#94a3b8;
-z-index:2;
-position:absolute;
-width:100%;
 }
 
 /* CARD */
@@ -137,8 +97,17 @@ padding:35px;
 border-radius:24px;
 width:320px;
 text-align:center;
-border:1px solid rgba(34,197,94,0.2);
-box-shadow:0 0 40px rgba(34,197,94,0.2);
+
+/* 💚 NEON GREEN BORDER */
+border:1px solid #22c55e;
+box-shadow:0 0 20px #22c55e, 0 0 40px rgba(34,197,94,0.5);
+
+transition:0.3s;
+}
+
+.card:hover{
+box-shadow:0 0 30px #22c55e, 0 0 60px rgba(34,197,94,0.7);
+transform:scale(1.02);
 }
 
 /* INPUT */
@@ -177,12 +146,20 @@ font-weight:bold;
 cursor:pointer;
 }
 
+button:hover{
+box-shadow:0 0 20px #22c55e;
+}
+
 /* LINKS */
 .link{
 font-size:13px;
 margin-top:10px;
 cursor:pointer;
 color:#94a3b8;
+}
+
+.link:hover{
+color:white;
 }
 
 /* MESSAGE */
@@ -197,9 +174,6 @@ min-height:18px;
 <body>
 
 <div class="shooting"></div>
-
-<div class="planet p1"></div>
-<div class="planet p2"></div>
 
 <div class="rockets">
 <span>🚀</span>
