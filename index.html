@@ -16,42 +16,120 @@ overflow:hidden;
 color:white;
 }
 
-/* STARS BACKGROUND */
+/* ⭐ STARS */
 body::before{
 content:"";
 position:absolute;
 width:100%;
 height:100%;
 background:url('https://www.transparenttextures.com/patterns/stardust.png');
-opacity:0.4;
+opacity:0.5;
+animation:twinkle 4s infinite alternate;
 }
 
-/* CANVAS */
-canvas{
+@keyframes twinkle{
+0%{opacity:0.3;}
+100%{opacity:0.6;}
+}
+
+/* 🌠 SHOOTING STAR */
+.shooting{
 position:absolute;
-top:0;
-left:0;
+width:2px;
+height:80px;
+background:linear-gradient(white, transparent);
+animation:shoot 4s linear infinite;
+opacity:0.7;
 }
 
-/* HERO */
+@keyframes shoot{
+0%{
+top:-10%;
+left:80%;
+transform:rotate(45deg);
+opacity:1;
+}
+100%{
+top:120%;
+left:20%;
+opacity:0;
+}
+}
+
+/* 🪐 PLANETS */
+.planet{
+position:absolute;
+border-radius:50%;
+opacity:0.4;
+animation:float 10s infinite alternate;
+}
+
+.p1{
+width:80px;
+height:80px;
+background:#22c55e;
+top:20%;
+left:10%;
+}
+
+.p2{
+width:60px;
+height:60px;
+background:#16a34a;
+bottom:20%;
+right:10%;
+}
+
+@keyframes float{
+0%{transform:translateY(0);}
+100%{transform:translateY(-30px);}
+}
+
+/* 🚀 ROCKETS */
+.rockets span{
+position:absolute;
+font-size:20px;
+animation:fly 10s linear infinite;
+opacity:0.7;
+}
+
+.rockets span:nth-child(1){left:10%;}
+.rockets span:nth-child(2){left:50%; animation-delay:3s;}
+.rockets span:nth-child(3){left:80%; animation-delay:6s;}
+
+@keyframes fly{
+0%{bottom:-50px;}
+100%{bottom:110%;}
+}
+
+/* TITLE */
 #hero{
 position:absolute;
 top:40px;
-text-align:center;
 width:100%;
+text-align:center;
 z-index:2;
 }
 
 #title{
 font-size:52px;
-font-weight:bold;
-letter-spacing:2px;
 color:#22c55e;
+}
+
+/* TAGLINE */
+#tagline{
+margin-top:100px;
+text-align:center;
+font-size:14px;
+color:#94a3b8;
+z-index:2;
+position:absolute;
+width:100%;
 }
 
 /* CARD */
 .card{
-margin-top:160px;
+margin-top:180px;
 z-index:2;
 backdrop-filter:blur(25px);
 background:rgba(255,255,255,0.05);
@@ -61,11 +139,6 @@ width:320px;
 text-align:center;
 border:1px solid rgba(34,197,94,0.2);
 box-shadow:0 0 40px rgba(34,197,94,0.2);
-transition:0.3s;
-}
-
-.card:hover{
-transform:scale(1.02);
 }
 
 /* INPUT */
@@ -77,11 +150,19 @@ border:none;
 border-radius:8px;
 background:rgba(255,255,255,0.05);
 color:white;
-outline:none;
 }
 
-input:focus{
-box-shadow:0 0 10px #22c55e;
+/* PASSWORD */
+.passBox{
+position:relative;
+}
+
+.eye{
+position:absolute;
+right:10px;
+top:50%;
+transform:translateY(-50%);
+cursor:pointer;
 }
 
 /* BUTTON */
@@ -96,10 +177,6 @@ font-weight:bold;
 cursor:pointer;
 }
 
-button:hover{
-box-shadow:0 0 15px #22c55e;
-}
-
 /* LINKS */
 .link{
 font-size:13px;
@@ -108,70 +185,45 @@ cursor:pointer;
 color:#94a3b8;
 }
 
-.link:hover{
-color:white;
-}
-
 /* MESSAGE */
 #msg{
 font-size:13px;
 margin-top:10px;
 min-height:18px;
 }
-
-/* ROCKETS */
-.rockets span{
-position:absolute;
-font-size:22px;
-animation:fly 10s linear infinite;
-opacity:0.7;
-}
-
-.rockets span:nth-child(1){
-left:10%;
-animation-delay:0s;
-}
-.rockets span:nth-child(2){
-left:50%;
-animation-delay:3s;
-}
-.rockets span:nth-child(3){
-left:80%;
-animation-delay:6s;
-}
-
-@keyframes fly{
-0%{
-bottom:-50px;
-transform:translateX(0) rotate(0deg);
-}
-100%{
-bottom:110%;
-transform:translateX(60px) rotate(360deg);
-}
-}
 </style>
 </head>
 
 <body>
 
-<!-- ROCKETS -->
+<div class="shooting"></div>
+
+<div class="planet p1"></div>
+<div class="planet p2"></div>
+
 <div class="rockets">
 <span>🚀</span>
 <span>🚀</span>
 <span>🚀</span>
 </div>
 
-<!-- HERO -->
 <div id="hero">
 <h1 id="title">🐞 BugLens</h1>
 </div>
 
-<!-- LOGIN CARD -->
+<div id="tagline">
+Build • Debug • Deploy Like a Pro 🚀
+</div>
+
 <div class="card">
 
 <input id="user" placeholder="Username">
+
+<div class="passBox">
 <input id="pass" type="password" placeholder="Password">
+<span class="eye" onclick="togglePass()">👁</span>
+</div>
+
 <input id="color" placeholder="Favorite Color" style="display:none;">
 
 <button id="actionBtn" onclick="login()">LOGIN</button>
@@ -185,7 +237,6 @@ transform:translateX(60px) rotate(360deg);
 
 <script>
 
-/* INIT */
 window.onload=function(){
 if(localStorage.getItem("username")){
 showLogin();
@@ -194,74 +245,59 @@ showSignup();
 }
 }
 
-/* MESSAGE */
-function showMsg(text,color){
-let m=document.getElementById("msg");
-m.innerText=text;
-m.style.color=color;
+function showMsg(t,c){
+msg.innerText=t;
+msg.style.color=c;
 }
 
-/* SIGNUP */
 function signup(){
-let u=user.value;
-let p=pass.value;
-let c=color.value;
-
-if(!u||!p||!c){
-showMsg("⚠ Fill all fields","#facc15");
+if(!user.value||!pass.value||!color.value){
+showMsg("Fill all fields","#facc15");
 return;
 }
-
-localStorage.setItem("username",u);
-localStorage.setItem("password",p);
-localStorage.setItem("color",c);
-
-showMsg("✅ Account created","#22c55e");
+localStorage.setItem("username",user.value);
+localStorage.setItem("password",pass.value);
+localStorage.setItem("color",color.value);
+showMsg("Account created","#22c55e");
 showLogin();
 }
 
-/* LOGIN */
 function login(){
-let u=user.value;
-let p=pass.value;
-
-let su=localStorage.getItem("username");
-let sp=localStorage.getItem("password");
-
-if(u===su && p===sp){
-showMsg("✅ Login success","#22c55e");
+if(user.value===localStorage.getItem("username") &&
+pass.value===localStorage.getItem("password")){
+showMsg("Login success","#22c55e");
 }else{
-showMsg("❌ Wrong credentials","#f87171");
+showMsg("Wrong credentials","#f87171");
 }
 }
 
-/* FORGOT */
 function forgotPassword(){
-let fav=prompt("Enter your favorite color:");
-let sc=localStorage.getItem("color");
-
-if(fav===sc){
-let newPass=prompt("Enter new password:");
-localStorage.setItem("password",newPass);
-showMsg("✅ Password updated","#22c55e");
+let fav=prompt("Enter favorite color:");
+if(fav===localStorage.getItem("color")){
+let np=prompt("New password:");
+localStorage.setItem("password",np);
+showMsg("Password updated","#22c55e");
 }else{
-showMsg("❌ Wrong answer","#f87171");
+showMsg("Wrong answer","#f87171");
 }
 }
 
-/* MODES */
 function showSignup(){
-document.getElementById("color").style.display="block";
-document.getElementById("actionBtn").innerText="SIGN UP";
-document.getElementById("actionBtn").onclick=signup;
-showMsg("", "");
+color.style.display="block";
+actionBtn.innerText="SIGN UP";
+actionBtn.onclick=signup;
+showMsg("","");
 }
 
 function showLogin(){
-document.getElementById("color").style.display="none";
-document.getElementById("actionBtn").innerText="LOGIN";
-document.getElementById("actionBtn").onclick=login;
-showMsg("", "");
+color.style.display="none";
+actionBtn.innerText="LOGIN";
+actionBtn.onclick=login;
+showMsg("","");
+}
+
+function togglePass(){
+pass.type = pass.type==="password" ? "text" : "password";
 }
 
 </script>
