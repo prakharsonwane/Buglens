@@ -10,18 +10,23 @@ height:100vh;
 font-family:Arial;
 display:flex;
 justify-content:center;
-align-items:center;
-background:radial-gradient(circle at top,#020617,#000);
+align-items:flex-start;
+background: radial-gradient(circle at bottom, #020617, #000);
 overflow:hidden;
 color:white;
-animation:fadeIn 1s ease;
 }
 
-@keyframes fadeIn{
-from{opacity:0;}
-to{opacity:1;}
+/* STARS BACKGROUND */
+body::before{
+content:"";
+position:absolute;
+width:100%;
+height:100%;
+background:url('https://www.transparenttextures.com/patterns/stardust.png');
+opacity:0.4;
 }
 
+/* CANVAS */
 canvas{
 position:absolute;
 top:0;
@@ -31,45 +36,32 @@ left:0;
 /* HERO */
 #hero{
 position:absolute;
-top:60px;
+top:40px;
 text-align:center;
+width:100%;
 z-index:2;
 }
 
 #title{
-font-size:56px;
+font-size:52px;
 font-weight:bold;
 letter-spacing:2px;
-
-color:#22c55e; /* fallback */
-
-background: linear-gradient(90deg,#22c55e,#4ade80,#16a34a);
-
-background-clip:text;
--webkit-background-clip: text;
-color:transparent;
-}
-
-/* FIX: removed problematic text-shadow */
-
-#subtitle{
-margin-top:10px;
-font-size:15px;
-color:#94a3b8;
+color:#22c55e;
 }
 
 /* CARD */
 .card{
+margin-top:160px;
 z-index:2;
-backdrop-filter:blur(30px);
+backdrop-filter:blur(25px);
 background:rgba(255,255,255,0.05);
-padding:40px;
-border-radius:28px;
-width:340px;
+padding:35px;
+border-radius:24px;
+width:320px;
 text-align:center;
-border:1px solid rgba(34,197,94,0.25);
-box-shadow:0 10px 60px rgba(34,197,94,0.2);
-transition:0.4s ease;
+border:1px solid rgba(34,197,94,0.2);
+box-shadow:0 0 40px rgba(34,197,94,0.2);
+transition:0.3s;
 }
 
 .card:hover{
@@ -79,20 +71,17 @@ transform:scale(1.02);
 /* INPUT */
 input{
 width:100%;
-padding:14px;
+padding:12px;
 margin:10px 0;
 border:none;
-border-radius:10px;
+border-radius:8px;
 background:rgba(255,255,255,0.05);
 color:white;
 outline:none;
-transition:0.3s;
 }
 
 input:focus{
-box-shadow:0 0 15px #22c55e;
-background:rgba(255,255,255,0.08);
-transform:scale(1.03);
+box-shadow:0 0 10px #22c55e;
 }
 
 /* BUTTON */
@@ -100,17 +89,15 @@ button{
 width:100%;
 padding:12px;
 border:none;
-border-radius:10px;
-background:linear-gradient(135deg,#22c55e,#16a34a);
+border-radius:8px;
+background:#22c55e;
 color:black;
 font-weight:bold;
 cursor:pointer;
-transition:0.3s;
 }
 
 button:hover{
-box-shadow:0 0 25px #22c55e;
-transform:scale(1.05);
+box-shadow:0 0 15px #22c55e;
 }
 
 /* LINKS */
@@ -132,41 +119,59 @@ margin-top:10px;
 min-height:18px;
 }
 
-/* PASSWORD BOX */
-.passBox{
-position:relative;
-}
-
-.eye{
+/* ROCKETS */
+.rockets span{
 position:absolute;
-right:10px;
-top:50%;
-transform:translateY(-50%);
-cursor:pointer;
+font-size:22px;
+animation:fly 10s linear infinite;
+opacity:0.7;
 }
 
-/* PARTICLES */
+.rockets span:nth-child(1){
+left:10%;
+animation-delay:0s;
+}
+.rockets span:nth-child(2){
+left:50%;
+animation-delay:3s;
+}
+.rockets span:nth-child(3){
+left:80%;
+animation-delay:6s;
+}
+
+@keyframes fly{
+0%{
+bottom:-50px;
+transform:translateX(0) rotate(0deg);
+}
+100%{
+bottom:110%;
+transform:translateX(60px) rotate(360deg);
+}
+}
 </style>
 </head>
 
 <body>
 
-<canvas id="bg"></canvas>
-
-<div id="hero">
-  <h1 id="title">🐞 BugLens</h1>
-  <p id="subtitle">Build. Debug. Deploy. Like a Pro 🚀</p>
+<!-- ROCKETS -->
+<div class="rockets">
+<span>🚀</span>
+<span>🚀</span>
+<span>🚀</span>
 </div>
 
+<!-- HERO -->
+<div id="hero">
+<h1 id="title">🐞 BugLens</h1>
+</div>
+
+<!-- LOGIN CARD -->
 <div class="card">
 
 <input id="user" placeholder="Username">
-
-<div class="passBox">
 <input id="pass" type="password" placeholder="Password">
-<span class="eye" onclick="togglePass()">👁</span>
-</div>
-
 <input id="color" placeholder="Favorite Color" style="display:none;">
 
 <button id="actionBtn" onclick="login()">LOGIN</button>
@@ -180,46 +185,7 @@ cursor:pointer;
 
 <script>
 
-/* PARTICLES */
-let canvas=document.getElementById("bg");
-let ctx=canvas.getContext("2d");
-
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-
-let particles=[];
-for(let i=0;i<80;i++){
-particles.push({
-x:Math.random()*canvas.width,
-y:Math.random()*canvas.height,
-r:Math.random()*2,
-dx:(Math.random()-0.5),
-dy:(Math.random()-0.5)
-});
-}
-
-function draw(){
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-particles.forEach(p=>{
-ctx.beginPath();
-ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-ctx.fillStyle="rgba(34,197,94,0.8)";
-ctx.fill();
-
-p.x+=p.dx;
-p.y+=p.dy;
-
-if(p.x<0||p.x>canvas.width) p.dx*=-1;
-if(p.y<0||p.y>canvas.height) p.dy*=-1;
-});
-
-requestAnimationFrame(draw);
-}
-draw();
-
-/* LOGIC */
-
+/* INIT */
 window.onload=function(){
 if(localStorage.getItem("username")){
 showLogin();
@@ -228,12 +194,14 @@ showSignup();
 }
 }
 
+/* MESSAGE */
 function showMsg(text,color){
 let m=document.getElementById("msg");
 m.innerText=text;
 m.style.color=color;
 }
 
+/* SIGNUP */
 function signup(){
 let u=user.value;
 let p=pass.value;
@@ -252,6 +220,7 @@ showMsg("✅ Account created","#22c55e");
 showLogin();
 }
 
+/* LOGIN */
 function login(){
 let u=user.value;
 let p=pass.value;
@@ -261,14 +230,12 @@ let sp=localStorage.getItem("password");
 
 if(u===su && p===sp){
 showMsg("✅ Login success","#22c55e");
-setTimeout(()=>{
-window.location.href="editor.html";
-},800);
 }else{
 showMsg("❌ Wrong credentials","#f87171");
 }
 }
 
+/* FORGOT */
 function forgotPassword(){
 let fav=prompt("Enter your favorite color:");
 let sc=localStorage.getItem("color");
@@ -282,23 +249,19 @@ showMsg("❌ Wrong answer","#f87171");
 }
 }
 
+/* MODES */
 function showSignup(){
 document.getElementById("color").style.display="block";
 document.getElementById("actionBtn").innerText="SIGN UP";
 document.getElementById("actionBtn").onclick=signup;
-showMsg("Create new account","#94a3b8");
+showMsg("", "");
 }
 
 function showLogin(){
 document.getElementById("color").style.display="none";
 document.getElementById("actionBtn").innerText="LOGIN";
 document.getElementById("actionBtn").onclick=login;
-showMsg("Welcome back","#94a3b8");
-}
-
-function togglePass(){
-let p=document.getElementById("pass");
-p.type = p.type==="password" ? "text" : "password";
+showMsg("", "");
 }
 
 </script>
