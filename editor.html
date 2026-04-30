@@ -332,12 +332,97 @@ setStatus("Error");
 
 /* CHECK */
 function checkCode(){
-out.innerHTML="<div class='box'>Basic check done ✔</div>";
+let c=code.value;
+let err=[];
+
+if(!c.trim()) err.push("Empty code");
+
+/* Brackets */
+if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
+err.push("Bracket mismatch");
+
+/* Colon check */
+let keywords=["if","for","while","def","elif","else"];
+let lines=c.split("\n");
+
+for(let i=0;i<lines.length;i++){
+let line=lines[i].trim();
+
+for(let kw of keywords){
+if(line.startsWith(kw) && !line.endsWith(":")){
+err.push("Line "+(i+1)+": missing ':'");
+}
+}
 }
 
+/* Lowercase keywords */
+let pythonKeywords=["if","for","while","def","elif","else","print","import","return"];
+
+for(let i=0;i<lines.length;i++){
+let words=lines[i].split(/\s+/);
+for(let w of words){
+let lower=w.toLowerCase();
+if(pythonKeywords.includes(lower) && w!==lower){
+err.push("Line "+(i+1)+": use '"+lower+"'");
+}
+}
+}
+
+/* Indentation */
+for(let i=1;i<lines.length;i++){
+let prev=lines[i-1];
+let line=lines[i];
+if(prev && prev.trim().endsWith(":")){
+if(line.trim()!=="" && !line.startsWith(" ") && !line.startsWith("\t")){
+err.push("Line "+(i+1)+": indentation error");
+}
+}
+}
+
+out.innerHTML = err.length
+? "<div class='error'>"+err.join("<br>")+"</div>"
+: "<div class='box'>Syntax looks good 🎉</div>";
+}
 /* SUGGEST */
 function showSuggestions(){
-out.innerHTML="<div class='box'>Try using print() or loops 👍</div>";
+let c=code.value;
+let s=[];
+
+/* BASIC CHECK */
+if(!c.trim()){
+s.push("Start writing some code");
+}
+
+/* PRINT */
+if(!c.includes("print")){
+s.push("Use print() to see output");
+}
+
+/* LOOP */
+if(c.includes("for") && !c.includes("print")){
+s.push("Add print() inside loop");
+}
+
+/* FUNCTION */
+if(c.includes("def") && !c.includes("return")){
+s.push("Function may need return value");
+}
+
+/* CONDITION */
+if(c.includes("if") && !c.includes(":")){
+s.push("Missing ':' in if condition");
+}
+
+/* INDENT */
+let lines=c.split("\n");
+for(let i=1;i<lines.length;i++){
+if(lines[i-1].trim().endsWith(":") && !lines[i].startsWith(" ")){
+s.push("Line "+(i+1)+": indentation needed");
+}
+}
+
+/* FINAL OUTPUT */
+out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"All good 👍")+"</div>";
 }
 
 /* SAVE */
