@@ -16,14 +16,12 @@ overflow:hidden;
 color:white;
 }
 
-/* CANVAS */
 canvas{
 position:absolute;
 top:0;
 left:0;
 }
 
-/* HERO */
 #hero{
 position:absolute;
 top:60px;
@@ -63,7 +61,6 @@ transform:translateY(-5px);
 100%{text-shadow:0 0 10px #22c55e;}
 }
 
-/* LOGIN CARD */
 .card{
 z-index:2;
 backdrop-filter:blur(25px);
@@ -74,7 +71,6 @@ width:320px;
 text-align:center;
 border:1px solid rgba(34,197,94,0.2);
 box-shadow:0 0 40px rgba(34,197,94,0.15);
-
 transform:translateY(110px);
 opacity:0;
 transition:0.6s ease;
@@ -85,7 +81,6 @@ transform:translateY(110px);
 opacity:1;
 }
 
-/* FEATURES */
 #features{
 font-size:13px;
 opacity:0.7;
@@ -94,7 +89,6 @@ color:#94a3b8;
 line-height:1.6;
 }
 
-/* INPUT */
 input{
 width:100%;
 padding:12px;
@@ -112,7 +106,6 @@ box-shadow:0 0 12px #22c55e;
 transform:scale(1.02);
 }
 
-/* BUTTON */
 button{
 width:100%;
 padding:12px;
@@ -130,57 +123,17 @@ box-shadow:0 0 20px #22c55e;
 transform:scale(1.03);
 }
 
-/* SUCCESS */
-.success{
-animation:zoomOut 0.6s forwards;
+.link{
+font-size:13px;
+margin-top:10px;
+cursor:pointer;
+color:#94a3b8;
 }
 
-@keyframes zoomOut{
-to{
-transform:scale(2);
-opacity:0;
-}
+.link:hover{
+color:white;
 }
 
-/* FLOATING STICKERS */
-.stickers span{
-position:absolute;
-font-size:22px;
-opacity:0.6;
-animation:float 6s infinite ease-in-out;
-}
-
-.stickers span:nth-child(1){top:20%;left:10%;}
-.stickers span:nth-child(2){top:30%;right:15%;animation-delay:1s;}
-.stickers span:nth-child(3){bottom:25%;left:20%;animation-delay:2s;}
-.stickers span:nth-child(4){bottom:15%;right:25%;animation-delay:3s;}
-.stickers span:nth-child(5){top:50%;left:50%;animation-delay:4s;}
-
-@keyframes float{
-0%{transform:translateY(0) rotate(0deg);}
-50%{transform:translateY(-20px) rotate(20deg);}
-100%{transform:translateY(0) rotate(0deg);}
-}
-
-/* GLOW BLOBS */
-.blob{
-position:absolute;
-width:200px;
-height:200px;
-background:#22c55e;
-filter:blur(120px);
-opacity:0.15;
-border-radius:50%;
-animation:moveBlob 10s infinite alternate;
-}
-
-.b1{top:10%;left:10%;}
-.b2{bottom:10%;right:10%;background:#16a34a;}
-
-@keyframes moveBlob{
-0%{transform:translate(0,0);}
-100%{transform:translate(40px,-40px);}
-}
 </style>
 </head>
 
@@ -188,25 +141,11 @@ animation:moveBlob 10s infinite alternate;
 
 <canvas id="bg"></canvas>
 
-<!-- STICKERS + BLOBS -->
-<div class="stickers">
-  <span>🚀</span>
-  <span>⚡</span>
-  <span>💻</span>
-  <span>🧠</span>
-  <span>🔥</span>
-</div>
-
-<div class="blob b1"></div>
-<div class="blob b2"></div>
-
-<!-- HERO -->
 <div id="hero">
   <h1 id="title"></h1>
   <p id="subtitle">Build. Debug. Deploy. Like a Pro 🚀</p>
 </div>
 
-<!-- LOGIN -->
 <div class="card" id="card">
 
 <div id="features">
@@ -217,8 +156,12 @@ animation:moveBlob 10s infinite alternate;
 
 <input id="user" placeholder="Username">
 <input id="pass" type="password" placeholder="Password">
+<input id="color" placeholder="Favorite Color" style="display:none;">
 
-<button onclick="login()">LOGIN</button>
+<button id="actionBtn" onclick="login()">LOGIN</button>
+
+<div class="link" onclick="showSignup()">Create Account</div>
+<div class="link" onclick="forgotPassword()">Forgot Password?</div>
 
 </div>
 
@@ -248,7 +191,7 @@ canvas.height=window.innerHeight;
 
 let particles=[];
 
-for(let i=0;i<90;i++){
+for(let i=0;i<80;i++){
 particles.push({
 x:Math.random()*canvas.width,
 y:Math.random()*canvas.height,
@@ -278,22 +221,73 @@ requestAnimationFrame(draw);
 }
 draw();
 
-/* LOGIN */
+/* LOGIC */
+
+// Auto detect first time
+window.onload = function(){
+if(localStorage.getItem("username")){
+showLogin();
+}else{
+showSignup();
+}
+}
+
+function signup(){
+let u=document.getElementById("user").value;
+let p=document.getElementById("pass").value;
+let c=document.getElementById("color").value;
+
+if(!u || !p || !c){
+alert("Fill all fields");
+return;
+}
+
+localStorage.setItem("username",u);
+localStorage.setItem("password",p);
+localStorage.setItem("color",c);
+
+alert("✅ Account Created!");
+showLogin();
+}
+
 function login(){
 let u=document.getElementById("user").value;
 let p=document.getElementById("pass").value;
 
-if(u==="admin" && p==="1234"){
-document.getElementById("card").classList.add("success");
+let su=localStorage.getItem("username");
+let sp=localStorage.getItem("password");
 
-setTimeout(()=>{
+if(u===su && p===sp){
+alert("✅ Login Success");
 window.location.href="editor.html";
-},600);
-
 }else{
-alert("❌ Wrong login");
+alert("❌ Wrong credentials");
 }
 }
+
+function forgotPassword(){
+let fav=prompt("Enter your favorite color:");
+let sc=localStorage.getItem("color");
+
+if(fav===sc){
+alert("✅ Verified! Now login");
+}else{
+alert("❌ Wrong answer");
+}
+}
+
+function showSignup(){
+document.getElementById("color").style.display="block";
+document.getElementById("actionBtn").innerText="SIGN UP";
+document.getElementById("actionBtn").onclick=signup;
+}
+
+function showLogin(){
+document.getElementById("color").style.display="none";
+document.getElementById("actionBtn").innerText="LOGIN";
+document.getElementById("actionBtn").onclick=login;
+}
+
 </script>
 
 </body>
