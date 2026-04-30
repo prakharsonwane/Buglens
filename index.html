@@ -11,48 +11,28 @@ font-family:Arial;
 display:flex;
 flex-direction:column;
 align-items:center;
+justify-content:flex-start;
 background: radial-gradient(circle at bottom, #020617, #000);
 overflow:hidden;
 color:white;
 }
 
-/* ⭐ STARS */
+/* STARS */
 body::before{
 content:"";
 position:absolute;
 width:100%;
 height:100%;
 background:url('https://www.transparenttextures.com/patterns/stardust.png');
-opacity:0.5;
-animation:twinkle 4s infinite alternate;
-z-index:0;
-}
-
-@keyframes twinkle{
-0%{opacity:0.3;}
-100%{opacity:0.6;}
-}
-
-/* 🚀 ROCKETS */
-.rockets span{
-position:absolute;
-font-size:20px;
-animation:fly 10s linear infinite;
-opacity:0.7;
-}
-
-.rockets span:nth-child(1){left:10%;}
-.rockets span:nth-child(2){left:50%; animation-delay:3s;}
-.rockets span:nth-child(3){left:80%; animation-delay:6s;}
-
-@keyframes fly{
-0%{bottom:-50px;}
-100%{bottom:110%;}
+opacity:0.4;
 }
 
 /* HERO */
 #hero{
 margin-top:60px;
+display:flex;
+flex-direction:column;
+align-items:center;
 text-align:center;
 z-index:2;
 }
@@ -79,15 +59,9 @@ border-radius:24px;
 width:320px;
 text-align:center;
 
-/* 💚 NEON */
+/* NEON */
 border:1px solid #22c55e;
 box-shadow:0 0 20px #22c55e, 0 0 40px rgba(34,197,94,0.5);
-transition:0.3s;
-}
-
-.card:hover{
-transform:scale(1.02);
-box-shadow:0 0 30px #22c55e, 0 0 60px rgba(34,197,94,0.7);
 }
 
 /* INPUT */
@@ -153,12 +127,6 @@ min-height:18px;
 
 <body>
 
-<div class="rockets">
-<span>🚀</span>
-<span>🚀</span>
-<span>🚀</span>
-</div>
-
 <div id="hero">
 <h1 id="title">🐞 BugLens</h1>
 <div id="tagline">Build • Debug • Deploy Like a Pro 🚀</div>
@@ -214,7 +182,14 @@ showLogin();
 function login(){
 if(user.value===localStorage.getItem("username") &&
 pass.value===localStorage.getItem("password")){
+
 showMsg("Login success","#22c55e");
+
+/* REDIRECT */
+setTimeout(()=>{
+window.location.href="editor.html";
+},800);
+
 }else{
 showMsg("Wrong credentials","#f87171");
 }
