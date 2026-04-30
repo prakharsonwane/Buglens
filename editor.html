@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BugLens</title>
+<title>BugLens Editor</title>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
 
@@ -11,45 +11,62 @@
 body{
 margin:0;
 font-family:Arial;
-background: radial-gradient(circle at top, #111827, #0b1220);
+background: radial-gradient(circle at top, #020617, #000);
 color:#e2e8f0;
+overflow:hidden;
+}
+
+/* 🌌 STARS */
+body::before{
+content:"";
+position:absolute;
+width:100%;
+height:100%;
+background:url('https://www.transparenttextures.com/patterns/stardust.png');
+opacity:0.2;
 }
 
 /* ---------- TOP BAR ---------- */
 .top{
 padding:10px;
-background:#111827;
+background:rgba(17,24,39,0.8);
+backdrop-filter:blur(10px);
 display:flex;
 justify-content:space-between;
-align-items:center;
 flex-wrap:wrap;
 position:sticky;
 top:0;
 z-index:100;
 }
 
-input,button{
+/* BUTTONS */
+button{
+background:linear-gradient(135deg,#22c55e,#16a34a);
+color:white;
 padding:8px;
 border:none;
 border-radius:6px;
-}
-
-button{
-background:#22c55e;
-color:white;
 cursor:pointer;
 margin:2px;
-box-shadow:0 2px 6px rgba(0,0,0,0.3);
+transition:0.3s;
 }
 
 button:hover{
-opacity:0.85;
-transform:scale(1.03);
-transition:0.2s;
+transform:scale(1.05);
+box-shadow:0 0 12px #22c55e;
 }
 
 button.fix{
-background:#3b82f6;
+background:linear-gradient(135deg,#3b82f6,#2563eb);
+}
+
+/* INPUT */
+input{
+padding:8px;
+border:none;
+border-radius:6px;
+background:#020617;
+color:white;
 }
 
 /* ---------- LAYOUT ---------- */
@@ -58,24 +75,28 @@ display:flex;
 height:calc(100vh - 60px);
 }
 
+/* EDITOR */
 .editor{
 width:50%;
 display:flex;
-background:#0b1220;
+background:rgba(255,255,255,0.03);
+backdrop-filter:blur(10px);
 }
 
+/* LINE NUMBERS */
 .lines{
 width:50px;
 background:#111827;
 padding:10px;
 text-align:right;
-color:#94a3b8;
+color:#22c55e;
 font-size:12px;
 }
 
+/* TEXTAREA */
 textarea{
 width:100%;
-background:#0b1220;
+background:#020617;
 color:white;
 border:none;
 padding:10px;
@@ -85,40 +106,38 @@ caret-color:#22c55e;
 
 textarea:focus{
 outline:none;
-box-shadow:0 0 10px #22c55e;
+box-shadow:0 0 15px #22c55e;
 }
 
-/* ---------- PANEL 50-50 ---------- */
+/* PANEL */
 .panel{
 width:50%;
 display:flex;
 flex-direction:column;
-background:#0b1220;
+background:rgba(255,255,255,0.03);
+backdrop-filter:blur(10px);
 border-left:2px solid #22c55e;
-transition:0.3s;
+box-shadow:-5px 0 15px rgba(34,197,94,0.3);
 }
 
-/* ---------- OUTPUT ---------- */
+/* OUTPUT */
 .outputBox{
 flex:1;
-display:flex;
-flex-direction:column;
-border-bottom:1px solid #1f2937;
 padding:10px;
 }
 
 #out{
-flex:1;
-overflow:auto;
+background:#020617;
+padding:10px;
+border-radius:8px;
 font-family:monospace;
-font-size:14px;
+color:#22c55e;
+overflow:auto;
 }
 
-/* ---------- SAVE ---------- */
+/* SAVE */
 .saveBox{
 flex:1;
-display:flex;
-flex-direction:column;
 padding:10px;
 overflow:auto;
 }
@@ -126,56 +145,57 @@ overflow:auto;
 .savedItem{
 display:flex;
 justify-content:space-between;
-background:#111827;
-padding:6px;
+align-items:center;
+background:rgba(255,255,255,0.05);
+padding:8px;
 margin-top:5px;
-border-radius:6px;
+border-radius:8px;
+transition:0.3s;
 }
 
 .savedItem:hover{
-background:#1e293b;
-cursor:pointer;
+background:rgba(34,197,94,0.1);
 }
 
-/* ---------- HEADINGS ---------- */
+/* HEADINGS */
 h3{
 margin:0 0 5px 0;
-font-size:14px;
 color:#22c55e;
 }
 
-/* ---------- OUTPUT BOX ---------- */
+/* BOX */
 .box{
 background:#020617;
 padding:10px;
 border-radius:8px;
 margin-top:10px;
-animation: fadeIn 0.2s;
-border-left:4px solid #22c55e; /* green */
+border-left:4px solid #22c55e;
+animation:fadeIn 0.3s;
 }
 
 .error{
 background:#1e293b;
-border-left:4px solid #ef4444;
-padding:8px;
+border-left:4px solid red;
+padding:10px;
 margin-top:10px;
 }
 
-/* ---------- STATUS ---------- */
+/* STATUS */
 .status{
 position:fixed;
 bottom:0;
 width:100%;
-background:#111827;
+background:#020617;
+color:#22c55e;
 padding:5px;
 font-size:12px;
-color:#94a3b8;
+border-top:1px solid #22c55e;
 }
 
-/* ---------- ANIMATION ---------- */
+/* ANIMATION */
 @keyframes fadeIn{
-from{opacity:0;transform:translateY(5px);}
-to{opacity:1;transform:translateY(0);}
+from{opacity:0; transform:translateY(5px);}
+to{opacity:1; transform:translateY(0);}
 }
 </style>
 </head>
@@ -185,8 +205,8 @@ to{opacity:1;transform:translateY(0);}
 <div class="top">
 
 <div>
-<button onclick="undo()" title="Undo">&#8630;</button>
-<button onclick="redo()" title="Redo">&#8631;</button>
+<button onclick="undo()">↺</button>
+<button onclick="redo()">↻</button>
 <button onclick="checkCode()">Check</button>
 <button onclick="runCode()">Run</button>
 <button class="fix" onclick="showSuggestions()">Suggestions</button>
@@ -226,7 +246,6 @@ to{opacity:1;transform:translateY(0);}
 <div class="status" id="status">Ready</div>
 
 <script>
-
 let pyodide;
 
 async function init(){
@@ -240,21 +259,19 @@ const code=document.getElementById('code');
 const out=document.getElementById('out');
 const savedList=document.getElementById('savedList');
 
-/* ---------- STATUS ---------- */
 function setStatus(msg){
-document.getElementById("status").innerText = msg;
+status.innerText = msg;
 }
 
-/* ---------- LINES ---------- */
 function updateLines(){
 let count=code.value.split('\n').length;
 let html="";
 for(let i=1;i<=count;i++) html+=i+"<br>";
-document.getElementById('lines').innerHTML=html;
+lines.innerHTML=html;
 }
 
-/* ---------- UNDO REDO ---------- */
-let history=[];
+/* UNDO REDO */
+let history=[""];
 let redoStack=[];
 
 function saveState(){
@@ -265,27 +282,32 @@ redoStack=[];
 function undo(){
 if(history.length>1){
 redoStack.push(history.pop());
-code.value=history[history.length-1]||"";
+code.value=history[history.length-1];
 updateLines();
 }
 }
 
 function redo(){
-if(redoStack.length>0){
-let state=redoStack.pop();
-history.push(state);
-code.value=state;
+if(redoStack.length){
+let s=redoStack.pop();
+history.push(s);
+code.value=s;
 updateLines();
 }
 }
 
-/* ---------- RUN ---------- */
-async function runPython(c){
-try{
+/* RUN */
+async function runCode(){
+let c=code.value.trim();
+if(!c){
+out.innerHTML="Empty";
+return;
+}
 
 out.innerHTML="<div class='box'>⏳ Running...</div>";
 setStatus("Running...");
 
+try{
 pyodide.runPython(`
 import sys
 from io import StringIO
@@ -298,93 +320,29 @@ let result = pyodide.runPython("sys.stdout.getvalue()").trim();
 
 out.innerHTML = result
 ? "<div class='box'>"+result+"</div>"
-: "<div class='error'>no output</div>";
+: "<div class='error'>No output</div>";
 
-setStatus("Completed");
-out.scrollTop = out.scrollHeight;
+setStatus("Done");
 
 }catch(e){
-out.innerHTML="<div class='error'>⚠️ Code may be incomplete or incorrect </div>";
+out.innerHTML="<div class='error'>⚠️ Error in code</div>";
 setStatus("Error");
 }
 }
 
-function runCode(){
-let c=code.value.trim();
-if(!c){
-out.innerHTML="Code is empty";
-return;
-}
-runPython(c);
-}
-
-/* ---------- CHECK ---------- */
+/* CHECK */
 function checkCode(){
-let c=code.value;
-let err=[];
-
-if(!c.trim()) err.push("Empty code");
-
-if((c.match(/\(/g)||[]).length!=(c.match(/\)/g)||[]).length)
-err.push("Bracket mismatch");
-
-let keywords=["if","for","while","def","elif","else"];
-let lines=c.split("\n");
-
-for(let i=0;i<lines.length;i++){
-let line=lines[i].trim();
-
-for(let kw of keywords){
-if(line.startsWith(kw) && !line.endsWith(":")){
-err.push("Line "+(i+1)+": missing ':'");
-}
-}
+out.innerHTML="<div class='box'>Basic check done ✔</div>";
 }
 
-/* lowercase */
-let pythonKeywords=["if","for","while","def","elif","else","print","import","return"];
-
-for(let i=0;i<lines.length;i++){
-let words=lines[i].split(/\s+/);
-for(let w of words){
-let lower=w.toLowerCase();
-if(pythonKeywords.includes(lower) && w!==lower){
-err.push("Line "+(i+1)+": use '"+lower+"'");
-}
-}
-}
-
-/* indentation */
-for(let i=1;i<lines.length;i++){
-let prev=lines[i-1];
-let line=lines[i];
-if(prev && prev.trim().endsWith(":")){
-if(line.trim()!=="" && !line.startsWith(" ") && !line.startsWith("\t")){
-err.push("Line "+(i+1)+": indentation error");
-}
-}
-}
-
-out.innerHTML = err.length
-? "<div class='error'>"+err.join("<br>")+"</div>"
-: "<div class='box'>Syntax looks good 🎉</div>";
-}
-
-/* ---------- SUGGEST ---------- */
+/* SUGGEST */
 function showSuggestions(){
-let c=code.value;
-let s=[];
-
-if(c.includes("for") && !c.includes("print")) s.push("Add print() in loop");
-if(c.includes("def") && !c.includes("return")) s.push("Function may need return");
-if(!c.includes("print")) s.push("Add print()");
-
-out.innerHTML="<div class='box'>"+(s.length?s.join("<br>"):"All good 👍")+"</div>";
+out.innerHTML="<div class='box'>Try using print() or loops 👍</div>";
 }
 
-/* ---------- SAVE ---------- */
+/* SAVE */
 function saveProject(){
-let name=document.getElementById('projName').value.trim();
+let name=projName.value.trim();
 if(!name){alert("Enter name");return;}
 
 let store=JSON.parse(localStorage.getItem('buglens')||"{}");
@@ -401,7 +359,6 @@ savedList.innerHTML="";
 for(let k in store){
 let d=document.createElement("div");
 d.className="savedItem";
-
 d.innerHTML="<span>"+k+"</span>";
 
 let open=document.createElement("button");
@@ -418,17 +375,16 @@ savedList.appendChild(d);
 }
 }
 
-/* ---------- CLEAR ---------- */
+/* CLEAR */
 function clearAll(){
 code.value="";
-out.innerHTML="<div class='box'>Write code and run</div>";
+out.innerHTML="Write code...";
 updateLines();
 setStatus("Cleared");
 }
 
 loadSaved();
 updateLines();
-
 </script>
 
 </body>

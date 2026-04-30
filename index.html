@@ -9,8 +9,8 @@ margin:0;
 height:100vh;
 font-family:Arial;
 display:flex;
-justify-content:center;
-align-items:flex-start;
+flex-direction:column;
+align-items:center;
 background: radial-gradient(circle at bottom, #020617, #000);
 overflow:hidden;
 color:white;
@@ -25,6 +25,7 @@ height:100%;
 background:url('https://www.transparenttextures.com/patterns/stardust.png');
 opacity:0.5;
 animation:twinkle 4s infinite alternate;
+z-index:0;
 }
 
 @keyframes twinkle{
@@ -49,25 +50,9 @@ opacity:0.7;
 100%{bottom:110%;}
 }
 
-/* 🌠 SHOOTING STAR */
-.shooting{
-position:absolute;
-width:2px;
-height:80px;
-background:linear-gradient(white, transparent);
-animation:shoot 5s linear infinite;
-}
-
-@keyframes shoot{
-0%{top:-10%; left:80%; transform:rotate(45deg);}
-100%{top:120%; left:20%;}
-}
-
-/* TITLE */
+/* HERO */
 #hero{
-position:absolute;
-top:40px;
-width:100%;
+margin-top:60px;
 text-align:center;
 z-index:2;
 }
@@ -75,21 +60,17 @@ z-index:2;
 #title{
 font-size:52px;
 color:#22c55e;
+margin-bottom:10px;
 }
 
-/* TAGLINE (FIXED POSITION) */
 #tagline{
-position:absolute;
-top:110px;   /* 👈 BugLens के नीचे */
-width:100%;
-text-align:center;
 font-size:14px;
 color:#94a3b8;
+margin-bottom:40px;
 }
 
 /* CARD */
 .card{
-margin-top:180px;
 z-index:2;
 backdrop-filter:blur(25px);
 background:rgba(255,255,255,0.05);
@@ -98,16 +79,15 @@ border-radius:24px;
 width:320px;
 text-align:center;
 
-/* 💚 NEON GREEN BORDER */
+/* 💚 NEON */
 border:1px solid #22c55e;
 box-shadow:0 0 20px #22c55e, 0 0 40px rgba(34,197,94,0.5);
-
 transition:0.3s;
 }
 
 .card:hover{
-box-shadow:0 0 30px #22c55e, 0 0 60px rgba(34,197,94,0.7);
 transform:scale(1.02);
+box-shadow:0 0 30px #22c55e, 0 0 60px rgba(34,197,94,0.7);
 }
 
 /* INPUT */
@@ -173,8 +153,6 @@ min-height:18px;
 
 <body>
 
-<div class="shooting"></div>
-
 <div class="rockets">
 <span>🚀</span>
 <span>🚀</span>
@@ -183,10 +161,7 @@ min-height:18px;
 
 <div id="hero">
 <h1 id="title">🐞 BugLens</h1>
-</div>
-
-<div id="tagline">
-Build • Debug • Deploy Like a Pro 🚀
+<div id="tagline">Build • Debug • Deploy Like a Pro 🚀</div>
 </div>
 
 <div class="card">
