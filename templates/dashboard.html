@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1020">
+    <meta name="description" content="Manage your Python and JavaScript projects in BugLens.">
+    <title>Dashboard | BugLens</title>
+
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icon-192.png') }}">
+<style>
+        :root {
+            color-scheme: dark;
+            --bg: #0b1020;
+            --panel: #121a2d;
+            --panel2: #0f1728;
+            --border: #26334d;
+            --text: #eef2ff;
+            --muted: #a2aec6;
+            --accent: #8b7cff;
+            --danger: #ff8585;
+            --success: #7ee0b0;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse at top left, #20234a 0%, transparent 40%),
+                var(--bg);
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+                         BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button, input, select { font: inherit; }
+        a { color: inherit; text-decoration: none; }
+
+        .container {
+            width: min(1120px, calc(100% - 40px));
+            margin: 0 auto;
+        }
+
+        .topbar {
+            min-height: 76px;
+            border-bottom: 1px solid #ffffff0e;
+        }
+
+        .topbar-inner {
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-size: 21px;
+            font-weight: 800;
+            letter-spacing: -0.7px;
+        }
+
+        .brand-icon {
+            width: 39px;
+            height: 39px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #8b7cff, #5b8cff);
+            color: white;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .user-label {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .button {
+            min-height: 42px;
+            padding: 0 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .button:hover {
+            background: #202a42;
+            transform: translateY(-1px);
+        }
+
+        .button-primary {
+            border-color: transparent;
+            background: var(--accent);
+            color: white;
+        }
+
+        .button-primary:hover { background: #a094ff; }
+
+        .button-danger {
+            color: var(--danger);
+            background: transparent;
+        }
+
+        .main { padding: 48px 0 70px; }
+
+        .welcome-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 22px;
+            margin-bottom: 30px;
+        }
+
+        .eyebrow {
+            margin-bottom: 10px;
+            color: #b6adff;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(30px, 4vw, 42px);
+            letter-spacing: -1.8px;
+        }
+
+        .subtitle {
+            margin: 11px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .flash-list { margin-bottom: 23px; }
+
+        .flash {
+            margin-bottom: 9px;
+            padding: 13px 15px;
+            border: 1px solid #394a72;
+            border-radius: 11px;
+            background: #1a2742;
+            color: #d4deff;
+            font-size: 13px;
+        }
+
+        .flash.success {
+            border-color: #285c4c;
+            background: #142f29;
+            color: var(--success);
+        }
+
+        .flash.error {
+            border-color: #5d3b48;
+            background: #351d2a;
+            color: #ffc0c0;
+        }
+
+        .panel {
+            padding: 23px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: #121a2dbb;
+        }
+
+        .panel-heading {
+            margin-bottom: 19px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .panel-heading h2 {
+            margin: 0;
+            font-size: 17px;
+        }
+
+        .panel-heading p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .create-form {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) 190px auto;
+            gap: 12px;
+        }
+
+        .field { min-width: 0; }
+
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5eb;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            min-height: 44px;
+            padding: 0 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            outline: none;
+            background: var(--panel2);
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px #8b7cff22;
+        }
+
+        .create-submit {
+            align-self: end;
+            min-height: 44px;
+        }
+
+        .projects-section { margin-top: 35px; }
+
+        .section-heading {
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .count {
+            padding: 5px 9px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .project-card {
+            min-width: 0;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #121a2dcc;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .project-card:hover {
+            border-color: #5b588d;
+            transform: translateY(-2px);
+        }
+
+        .project-icon {
+            width: 41px;
+            height: 41px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #8b7cff30;
+            border-radius: 12px;
+            background: #8b7cff12;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .project-title {
+            overflow-wrap: anywhere;
+            margin: 17px 0 8px;
+            font-size: 16px;
+            font-weight: 750;
+        }
+
+        .project-meta {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .project-actions {
+            margin-top: 20px;
+            padding-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            border-top: 1px solid #ffffff0d;
+        }
+
+        .open-link {
+            color: #c1b9ff;
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .delete-form { margin: 0; }
+
+        .delete-button {
+            padding: 6px 8px;
+            border: 1px solid transparent;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--danger);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .delete-button:hover {
+            border-color: #5d3b48;
+            background: #351d2a;
+        }
+
+        .empty-state {
+            padding: 55px 20px;
+            border: 1px dashed #36415e;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            margin-bottom: 15px;
+            font-size: 34px;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 8px;
+            font-size: 17px;
+        }
+
+        .empty-state p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        footer {
+            padding: 22px 0;
+            border-top: 1px solid #ffffff0d;
+            color: #7f8ca6;
+            font-size: 12px;
+        }
+
+        @media (max-width: 850px) {
+            .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .create-form { grid-template-columns: 1fr 1fr; }
+            .create-submit { grid-column: 1 / -1; }
+        }
+
+        @media (max-width: 560px) {
+            .container { width: calc(100% - 28px); }
+            .main { padding-top: 32px; }
+            .welcome-row {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .topbar-actions { gap: 8px; }
+            .user-label { display: none; }
+            .project-grid { grid-template-columns: 1fr; }
+            .create-form { grid-template-columns: 1fr; }
+            .create-submit { grid-column: auto; }
+            .panel { padding: 17px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a class="brand" href="{{ url_for('dashboard') }}">
+                <span class="brand-icon" aria-hidden="true">B</span>
+                <span>BugLens</span>
+            </a>
+
+            <div class="topbar-actions">
+                <button class="button" type="button" data-install-app hidden>Install App</button>
+                <span class="user-label">
+                    Signed in as <strong>{{ current_user.username }}</strong>
+                </span>
+
+                <form method="POST" action="{{ url_for('logout') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="button" type="submit">Sign Out</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="container main">
+        <section class="welcome-row">
+            <div>
+                <div class="eyebrow">YOUR WORKSPACE</div>
+                <h1>Welcome back, {{ current_user.username }}.</h1>
+                <p class="subtitle">
+                    Create a project, continue coding, and keep your work organized.
+                </p>
+            </div>
+        </section>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-list" aria-live="polite">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="panel" aria-labelledby="create-heading">
+            <div class="panel-heading">
+                <div>
+                    <h2 id="create-heading">Create a new project</h2>
+                    <p>Choose a name and programming language to get started.</p>
+                </div>
+            </div>
+
+            <form class="create-form" method="POST" action="{{ url_for('new_project') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="field">
+                    <label for="project-name">Project name</label>
+                    <input
+                        id="project-name"
+                        name="name"
+                        type="text"
+                        maxlength="100"
+                        placeholder="My First Project"
+                        value="My Project"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="project-language">Programming language</label>
+                    <select id="project-language" name="language" required>
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                    </select>
+                </div>
+
+                <button class="button button-primary create-submit" type="submit">
+                    + Create Project
+                </button>
+            </form>
+        </section>
+
+        <section class="projects-section" aria-labelledby="projects-heading">
+            <div class="section-heading">
+                <h2 id="projects-heading">Your Projects</h2>
+                <span class="count">{{ projects|length }} total</span>
+            </div>
+
+            {% if projects %}
+                <div class="project-grid">
+                    {% for project in projects %}
+                        <article class="project-card">
+                            <div class="project-icon" aria-hidden="true">
+                                {% if project.language == 'javascript' %}JS{% else %}PY{% endif %}
+                            </div>
+
+                            <h3 class="project-title">{{ project.name }}</h3>
+
+                            <div class="project-meta">
+                                {% if project.language == 'javascript' %}
+                                    JavaScript
+                                {% else %}
+                                    Python
+                                {% endif %}
+                                &nbsp;·&nbsp; BugLens Project
+                            </div>
+
+                            <div class="project-actions">
+                                <a class="open-link" href="{{ url_for('editor', project_id=project.id) }}">
+                                    Open Editor →
+                                </a>
+
+                                <form
+                                    class="delete-form"
+                                    method="POST"
+                                    action="{{ url_for('delete_project', project_id=project.id) }}"
+                                    onsubmit="return confirm('Delete this project permanently? This action cannot be undone.');"
+                                >
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="delete-button" type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon" aria-hidden="true">⌘</div>
+                    <h3>Your workspace is ready</h3>
+                    <p>
+                        You have no projects yet. Create your first Python or
+                        JavaScript project above to begin.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            BugLens · Your coding workspace · Python and JavaScript
+        </div>
+    </footer>
+    <script src="{{ url_for('static', filename='pwa.js') }}"></script>
+</body>
+</html>
